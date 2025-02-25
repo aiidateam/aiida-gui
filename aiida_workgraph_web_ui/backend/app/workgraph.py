@@ -38,21 +38,13 @@ async def read_workgraph_data(search: str = Query(None)):
 async def read_workgraph_task(id: int, node_name: str):
     from .utils import node_to_short_json
     from aiida.orm.utils.serialize import deserialize_unsafe
-    from aiida.orm import QueryBuilder
-    from aiida_workgraph.engine.workgraph import WorkGraphEngine
+    from aiida.orm import load_node
 
     try:
         tstart = time.time()
-        qb = QueryBuilder()
-        projections = [f"extras._workgraph.tasks.{node_name}"]
-        qb.append(
-            WorkGraphEngine, filters={"id": id}, project=projections, tag="process"
-        )
-        results = qb.all()
-        if len(results) == 0:
-            print("No workgraph data found in the node.")
-            return
-        ndata = deserialize_unsafe(results[0][0])
+        node = load_node(id)
+        ndata = node.workgraph_data["tasks"][node_name]
+        ndata = deserialize_unsafe(ndata)
         content = node_to_short_json(id, ndata)
         print(f"Time to convert to json: {time.time() - tstart}")
         tstart = time.time()
@@ -77,7 +69,7 @@ async def read_workgraph(id: int):
 
         node = orm.load_node(id)
 
-        content = node.base.extras.get("_workgraph_short", None)
+        content = node.workgraph_data_short
         if content is None:
             print("No workgraph data found in the node.")
             return
