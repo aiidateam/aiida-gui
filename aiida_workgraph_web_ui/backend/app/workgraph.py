@@ -45,6 +45,8 @@ async def read_workgraph_task(id: int, node_name: str):
         node = load_node(id)
         ndata = node.workgraph_data["tasks"][node_name]
         ndata = deserialize_unsafe(ndata)
+        executor = node.task_executors.get(node_name, None)
+        ndata["executor"] = executor if executor else {}
         content = node_to_short_json(id, ndata)
         print(f"Time to convert to json: {time.time() - tstart}")
         tstart = time.time()

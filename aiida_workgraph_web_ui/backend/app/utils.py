@@ -8,9 +8,9 @@ from dateutil.tz import tzlocal
 def get_executor_source(tdata: Any) -> Tuple[bool, Optional[str]]:
     """Get the source code of the executor."""
     import inspect
-    from aiida_workgraph.utils import get_executor
+    from node_graph.executor import NodeExecutor
 
-    executor, _ = get_executor(tdata["executor"])
+    executor = NodeExecutor(**tdata["executor"]).executor
     if callable(executor):
         try:
             source_lines, _ = inspect.getsourcelines(executor)
