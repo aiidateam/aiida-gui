@@ -73,6 +73,9 @@ jobs:
         -   name: Install aiida-core
             run: pip install aiida-core==${{ matrix.aiida-core-version }}
 
+        -   name: Install aiida-workgraph
+            run: pip install git+https://github.com/aiidateam/aiida-workgraph.git
+
         -   name: Install Python dependencies
             run: |
                 pip install -e .[pre-commit,tests]
