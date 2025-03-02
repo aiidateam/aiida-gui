@@ -244,8 +244,6 @@ function WorkGraph() {
           onSortModelChange={(model) => {
             setSortModel(model);
           }}
-          // If you want to allow client-side sorting, just keep sortingMode default ("client").
-          // For server-side sorting you’d use sortingMode="server" and handle the request differently.
         />
       </div>
 
