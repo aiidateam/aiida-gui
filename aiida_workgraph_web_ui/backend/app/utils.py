@@ -40,7 +40,7 @@ def get_node_inputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int], 
     from aiida.common.links import LinkType
 
     if pk is None:
-        return ""
+        return {}
 
     node = load_node(pk)
     nodes_input = node.base.links.get_incoming(
@@ -80,6 +80,7 @@ def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, An
     executor = get_executor_source(tdata)
     tdata_short = {
         "node_type": tdata["metadata"]["node_type"],
+        "label": tdata["name"],
         "metadata": [
             ["name", tdata["name"]],
             ["node_type", tdata["metadata"]["node_type"]],

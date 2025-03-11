@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo} from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import '../App.css';
 import '../rete.css';
 import { createEditor, addControls, removeControls } from '../rete/default';
@@ -74,6 +74,8 @@ export function useRete<T extends { destroy(): void }>(
 
 function WorkGraph() {
   const { pk } = useParams();
+  const location = useLocation();
+
   const [workgraphData, setWorkGraphData] = useState({ summary: {}, nodes: {}, links: [], pk: [] });
   const [ref, editor] = useRete(createEditor, workgraphData);
   const [selectedNode, setSelectedNode] = useState({ metadata: [], executor: '' });
@@ -82,6 +84,17 @@ function WorkGraph() {
   const [selectedView, setSelectedView] = useState('Editor');
   const [realtimeSwitch, setRealtimeSwitch] = useState(false); // State to manage the realtime switch
   const [detailNodeViewSwitch, setDetailNodeViewSwitch] = useState(false); // State to manage the realtime switch
+
+  // This is the base path: /workgraph/45082/
+  const basePath = `/workgraph/${pk}/`;
+
+  // subPath will be everything after that basePath in the URL.
+  // e.g. if user visits /workgraph/45082/sub_wg, subPath = "sub_wg"
+  // if user visits /workgraph/45082/sub_wg/abc, subPath = "sub_wg/abc"
+  // if user visits just /workgraph/45082, subPath = ""
+  const subPath = location.pathname.startsWith(basePath)
+    ? location.pathname.slice(basePath.length)
+    : "";
 
   // Fetch state data from the backend
   const fetchStateData = async () => {
@@ -173,7 +186,13 @@ function WorkGraph() {
 
   // Fetch workgraph data from the API
   useEffect(() => {
-    fetch(`http://localhost:8000/api/workgraph/${pk}`)
+    let url;
+    if (subPath) {
+      url = `http://localhost:8000/api/workgraph/${pk}/${subPath}`;
+    } else {
+      url = `http://localhost:8000/api/workgraph/${pk}`;
+    }
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         setWorkGraphData(data);
@@ -181,7 +200,7 @@ function WorkGraph() {
         setWorkGraphHierarchy(data.parent_workgraphs);
       })
       .catch((error) => console.error('Error fetching data:', error));
-  }, [pk]); // Only re-run when `pk` changes
+  }, [pk, subPath]); // Only re-run when `pk` changes
 
   // Setup editor event listener
   useEffect(() => {
@@ -195,7 +214,13 @@ function WorkGraph() {
 
           try {
             // Fetch data from the backend
-            const response = await fetch(`http://localhost:8000/api/workgraph/${pk}/${node.label}`);
+            let url;
+            if (subPath) {
+              url = `http://localhost:8000/api/task/${pk}/${subPath}/${node.label}`;
+            } else {
+              url = `http://localhost:8000/api/task/${pk}/${node.label}`;
+            }
+            const response = await fetch(url);
             if (!response.ok) {
               throw new Error('Failed to fetch data');
             }
@@ -309,7 +334,12 @@ function WorkGraph() {
               </div>
               </LayoutAction>
               {showNodeDetails && (
-              <NodeDetails selectedNode={selectedNode} onClose={handleNodeDetailsClose} setShowNodeDetails={setShowNodeDetails} />
+              <NodeDetails
+              selectedNode={selectedNode}
+              parentPk={pk}
+              parentPath={subPath}
+              onClose={handleNodeDetailsClose}
+              setShowNodeDetails={setShowNodeDetails} />
             )}
             </EditorContainer>
             {editorComponent}

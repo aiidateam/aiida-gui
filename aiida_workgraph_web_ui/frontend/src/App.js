@@ -19,7 +19,7 @@ function App() {
             <Route path="/datanode" element={<DataNodeTable />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/" element={<Home />} />
-            <Route path="/workgraph/:pk" element={<WorkGraphItem />} />
+            <Route path="/workgraph/:pk/*" element={<WorkGraphItem />} />
             <Route path="/datanode/:pk" element={<DataNodeItem />} />
           </Routes>
         </Layout>

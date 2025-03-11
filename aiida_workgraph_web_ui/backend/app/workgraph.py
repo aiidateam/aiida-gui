@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from aiida import orm
 from typing import List, Dict, Union
-import time
+from aiida_workgraph.utils import get_parent_workgraphs
 
 router = APIRouter()
 
@@ -34,27 +34,67 @@ async def read_workgraph_data(search: str = Query(None)):
         raise HTTPException(status_code=404, detail=f"Workgraph {id} not found")
 
 
-@router.get("/api/workgraph/{id}/{node_name}")
-async def read_workgraph_task(id: int, node_name: str):
+@router.get("/api/task/{id}/{path:path}")
+async def read_task(id: int, path: str):
     from .utils import node_to_short_json
     from aiida.orm.utils.serialize import deserialize_unsafe
     from aiida.orm import load_node
 
     try:
-        tstart = time.time()
         node = load_node(id)
-        ndata = node.workgraph_data["tasks"][node_name]
+        segments = path.split("/")
+        ndata = node.workgraph_data["tasks"][segments[0]]
         ndata = deserialize_unsafe(ndata)
-        executor = node.task_executors.get(node_name, None)
-        ndata["executor"] = executor if executor else {}
-        content = node_to_short_json(id, ndata)
-        print(f"Time to convert to json: {time.time() - tstart}")
-        tstart = time.time()
+        executor = node.task_executors.get(segments[0], None)
+        if len(segments) == 1:
+            ndata["executor"] = executor if executor else {}
+            content = node_to_short_json(id, ndata)
+            return content
+        else:
+            graph_data = executor["graph_data"]
+            ndata = graph_data["tasks"][segments[1]]
+            for segment in segments[2:]:
+                ndata = ndata["executor"]["graph_data"]["tasks"][segment]
+            content = node_to_short_json(None, ndata)
+            return content
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Workgraph {id}/{path} not found")
+
+
+@router.get("/api/workgraph/{id}/{path:path}")
+async def read_sub_workgraph(id: int, path: str):
+    """
+    path is a string that contains everything after {id}/
+    e.g. if the request is /api/workgraph/123/foo/bar/baz
+    then path = "foo/bar/baz"
+    """
+    from aiida_workgraph.utils import workgraph_to_short_json
+    from aiida.orm import load_node
+
+    try:
+        node = load_node(id)
+        segments = path.split("/")
+        executor = node.task_executors.get(segments[0])
+        graph_data = executor["graph_data"]
+        for segment in segments[1:]:
+            graph_data = graph_data["tasks"][segment]["executor"]["graph_data"]
+        content = workgraph_to_short_json(graph_data)
+        if content is None:
+            print("No workgraph data found in the node.")
+            return
+        summary = {
+            "table": [],
+            "inputs": {},
+            "outputs": {},
+        }
+
+        parent_workgraphs = [[node.process_label, id]] + segments
+        content["summary"] = summary
+        content["parent_workgraphs"] = parent_workgraphs
+        content["processes_info"] = {}
         return content
     except KeyError:
-        raise HTTPException(
-            status_code=404, detail=f"Workgraph {id}/{node_name} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Workgraph {id}/{path} not found")
 
 
 @router.get("/api/workgraph/{id}")
@@ -64,10 +104,8 @@ async def read_workgraph(id: int):
         get_node_inputs,
         get_node_outputs,
     )
-    from aiida_workgraph.utils import get_parent_workgraphs
 
     try:
-        tstart = time.time()
 
         node = orm.load_node(id)
 
@@ -83,8 +121,6 @@ async def read_workgraph(id: int):
 
         parent_workgraphs = get_parent_workgraphs(id)
         parent_workgraphs.reverse()
-        print(f"Time to load process latest: {time.time() - tstart}")
-        tstart = time.time()
         content["summary"] = summary
         content["parent_workgraphs"] = parent_workgraphs
         content["processes_info"] = {}
@@ -94,7 +130,7 @@ async def read_workgraph(id: int):
 
 
 @router.get("/api/workgraph-state/{id}")
-async def read_workgraph_tasks_state(id: int, item_type: str = "task"):
+async def read_tasks_state(id: int, item_type: str = "task"):
     from aiida_workgraph.utils import get_processes_latest
 
     try:
