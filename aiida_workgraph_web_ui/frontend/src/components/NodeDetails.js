@@ -163,7 +163,7 @@ function NodeDetails({ selectedNode, onClose, setShowNodeDetails }) {
     <NodeDetailsPanel>
       <CloseButton onClick={handleClose}>Close</CloseButton>
       <NodeDetailsTitle>Node Details</NodeDetailsTitle>
-      {(selectedNode.node_type.toUpperCase() === 'GRAPH_BUILDER' || selectedNode.node_type.toUpperCase() === 'WORKGRAPH') && (
+      {(selectedNode.node_type.toUpperCase() === 'GRAPH_BUILDER' || selectedNode.node_type.toUpperCase() === 'WORKGRAPH' || selectedNode.node_type.toUpperCase() === 'MAP') && (
       <WorkGraphButton onClick={handleWorkGraphClick} disabled={isButtonDisabled}>
         Go to WorkGraph
       </WorkGraphButton>
