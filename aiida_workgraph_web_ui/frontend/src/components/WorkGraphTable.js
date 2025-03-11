@@ -169,7 +169,7 @@ function WorkGraph() {
       field: 'process_label',
       headerName: 'Process Label',
       width: 300,
-      sortable: false, // or true if you want to allow sorting
+      sortable: false,
     },
     {
       field: 'state',
@@ -180,25 +180,18 @@ function WorkGraph() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 180, // Ensure enough space for buttons
+      width: 180, // Enough space for buttons
       sortable: false,
       renderCell: (params) => {
         const item = params.row;
-        return (
-          <>
-            {/* Pause Button */}
-            <Tooltip title="Pause">
-              <IconButton onClick={() => handlePauseClick(item)} color="primary">
-                <Pause />
-              </IconButton>
-            </Tooltip>
-            {/* Play Button */}
-            <Tooltip title="Resume">
-              <IconButton onClick={() => handlePlayClick(item)} color="success">
-                <PlayArrow />
-              </IconButton>
-            </Tooltip>
-            {/* Delete Button */}
+
+        // If state is "finished", "failed", or "excepted", show NO Play/Pause
+        if (
+          item.state.includes('Finished') ||
+          item.state.includes('Failed') ||
+          item.state.includes('Excepted')
+        ) {
+          return (
             <Tooltip title="Delete">
               <IconButton
                 onClick={() => setToDeleteItem(structuredClone(item))}
@@ -207,7 +200,64 @@ function WorkGraph() {
                 <Delete />
               </IconButton>
             </Tooltip>
-          </>
+          );
+        }
+
+        // If state includes "running" or "waiting", show the Pause button
+        if (
+          item.state.includes('Running') ||
+          item.state.includes('Waiting')
+        ) {
+          return (
+            <>
+              <Tooltip title="Pause">
+                <IconButton onClick={() => handlePauseClick(item)} color="primary">
+                  <Pause />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  onClick={() => setToDeleteItem(structuredClone(item))}
+                  color="error"
+                >
+                  <Delete />
+                </IconButton>
+              </Tooltip>
+            </>
+          );
+        }
+
+        // If state includes "pause", show the Play/Resume button
+        if (item.state.includes('Pause')) {
+          return (
+            <>
+              <Tooltip title="Resume">
+                <IconButton onClick={() => handlePlayClick(item)} color="success">
+                  <PlayArrow />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  onClick={() => setToDeleteItem(structuredClone(item))}
+                  color="error"
+                >
+                  <Delete />
+                </IconButton>
+              </Tooltip>
+            </>
+          );
+        }
+
+        // Default fallback: just show Delete if the state doesn't match any above
+        return (
+          <Tooltip title="Delete">
+            <IconButton
+              onClick={() => setToDeleteItem(structuredClone(item))}
+              color="error"
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
         );
       },
     },
