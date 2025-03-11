@@ -143,6 +143,7 @@ def web_server(set_backend_server_settings, uvicorn_configuration):
 
     web_server_proc.join()
     web_server_proc.close()
+    print("Web server stopped.")
 
 
 # Define a fixture for the browser
