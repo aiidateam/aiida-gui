@@ -54,7 +54,7 @@ def test_workgraph_item(web_server, page, ran_wg_calcfunction):
     page.goto("http://localhost:8000/workgraph/")
     page.get_by_role("link", name=str(ran_wg_calcfunction.pk), exact=True).click()
 
-    assert page.get_by_text("sumdiff2").is_visible()
+    expect(page.get_by_text("sumdiff2")).to_be_visible(timeout=5000)  # 5s timeout
 
     # Click "Arrange" button
     page.get_by_role("button", name="Arrange").click()
