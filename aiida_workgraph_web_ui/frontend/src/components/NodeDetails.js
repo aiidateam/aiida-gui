@@ -100,41 +100,79 @@ function NodeDetails({
   parentPath,
 }) {
   const navigate = useNavigate();
+  const nodeType = selectedNode.node_type?.toUpperCase() || '';
+  const nodeLabel = selectedNode.label;
+  const processPk = selectedNode.process?.pk;
+  const nodeState = selectedNode.state?.toUpperCase() || '';
+
+  console.log('NodeDetails:', selectedNode);
 
   const handleClose = () => {
     setShowNodeDetails(false);
     onClose();
   };
 
-  // This handles the “Go to WorkGraph” button
-  const handleWorkGraphClick = () => {
-    const type = selectedNode.node_type?.toUpperCase() || '';
-    const nodeLabel = selectedNode.label;
-    const processPk = selectedNode.process?.pk;
-
-    if (type === 'GRAPH_BUILDER') {
-      // If we have a valid process pk, go to /workgraph/<processPk>.
-      if (processPk) {
-        navigate(`/workgraph/${processPk}`);
-      }
-    } else if (type === 'WORKGRAPH' || type === 'MAP') {
-      // For sub-workgraphs or MAP, navigate using the parent's pk plus the node label
-      // e.g. /workgraph/45082/sub_wg
-      if (parentPath) {
-        navigate(`/workgraph/${parentPk}/${parentPath}/${nodeLabel}`);
-      } else {
-        navigate(`/workgraph/${parentPk}/${nodeLabel}`);
-      }
+  /**
+   * Utility to navigate to the sub-route if there's no direct process PK.
+   * E.g. /workgraph/45082/foo/bar
+   */
+  const navigateSubRoute = () => {
+    if (parentPath) {
+      navigate(`/workgraph/${parentPk}/${parentPath}/${nodeLabel}`);
+    } else {
+      navigate(`/workgraph/${parentPk}/${nodeLabel}`);
     }
   };
 
-  // Logic to disable the button if:
-  // 1) It's a GRAPH_BUILDER but has NO process pk
-  // 2) or any other logic you might want
-  const isButtonDisabled =
-    selectedNode.node_type?.toUpperCase() === 'GRAPH_BUILDER' &&
-    (!selectedNode.process || !selectedNode.process.pk);
+  /**
+   * Main click handler for the "Go to WorkGraph" button
+   */
+  const handleWorkGraphClick = () => {
+    if (nodeType === 'GRAPH_BUILDER') {
+      // Only valid if we have a processPk
+      if (processPk) {
+        navigate(`/workgraph/${processPk}`);
+      }
+      // else disabled, do nothing
+    }
+    else if (nodeType === 'WORKGRAPH') {
+      // If there's a real process, navigate to that
+      // otherwise sub-route
+      if (processPk) {
+        navigate(`/workgraph/${processPk}`);
+      } else {
+        navigateSubRoute();
+      }
+    }
+    else if (nodeType === 'MAP') {
+      // For MAP, only if the state is in [RUNNING, FINISHED, FAILED]
+      if (['RUNNING', 'FINISHED', 'FAILED'].includes(nodeState)) {
+        navigateSubRoute();
+      }
+      // else disabled, do nothing
+    }
+  };
 
+  /**
+   * isButtonDisabled logic:
+   *  - GRAPH_BUILDER => disabled if no processPk
+   *  - WORKGRAPH => always enabled (sub-route is fallback)
+   *  - MAP => enabled only if state in [RUNNING, FINISHED, FAILED], else disabled
+   */
+  let isButtonDisabled = false;
+  if (nodeType === 'GRAPH_BUILDER') {
+    isButtonDisabled = !processPk;
+  }
+  else if (nodeType === 'WORKGRAPH') {
+    isButtonDisabled = false; // always enabled (sub-route fallback)
+  }
+  else if (nodeType === 'MAP') {
+    isButtonDisabled = !['RUNNING', 'FINISHED', 'FAILED'].includes(nodeState);
+  }
+
+  /**
+   * Render a nested list of inputs or outputs.
+   */
   const renderInputs = (inputs, depth = 0) => {
     return Object.entries(inputs).map(([key, value]) => {
       if (Array.isArray(value)) {
@@ -146,7 +184,7 @@ function NodeDetails({
           </li>
         );
       } else if (typeof value === 'object' && value !== null) {
-        // Nested inputs
+        // Nested dictionary
         return (
           <li key={key}>
             {key}:
@@ -164,21 +202,17 @@ function NodeDetails({
 
       <NodeDetailsTitle>Node Details</NodeDetailsTitle>
 
-      {/*
-        Show “Go to WorkGraph” button if it's a graph-building node,
-        or a sub-workflow node, or a map node.
-      */}
-      {(selectedNode.node_type?.toUpperCase() === 'GRAPH_BUILDER' ||
-        selectedNode.node_type?.toUpperCase() === 'WORKGRAPH' ||
-        selectedNode.node_type?.toUpperCase() === 'MAP') && (
+      {/* Show button only if type is GRAPH_BUILDER, WORKGRAPH, or MAP */}
+      {['GRAPH_BUILDER', 'WORKGRAPH', 'MAP'].includes(nodeType) && (
         <WorkGraphButton onClick={handleWorkGraphClick} disabled={isButtonDisabled}>
           Go to WorkGraph
         </WorkGraphButton>
       )}
 
+      {/* Metadata table */}
       {selectedNode && (
         <NodeDetailsTable>
-          {selectedNode.metadata.map(([property, value]) => (
+          {selectedNode.metadata?.map(([property, value]) => (
             <NodeDetailRow key={property}>
               <NodeDetailProperty>{property}</NodeDetailProperty>
               <NodeDetailValue>{value}</NodeDetailValue>
@@ -191,19 +225,21 @@ function NodeDetails({
       </div>
       <NodeDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
-          {renderInputs(selectedNode.inputs)}
+          {renderInputs(selectedNode.inputs || {})}
         </ul>
       </NodeDetailsTable>
 
+      {/* Outputs */}
       <div>
         <NodeDetailsTitle>Outputs:</NodeDetailsTitle>
       </div>
       <NodeDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
-          {renderInputs(selectedNode.outputs)}
+          {renderInputs(selectedNode.outputs || {})}
         </ul>
       </NodeDetailsTable>
 
+      {/* Executor code */}
       <div>
         <NodeDetailsTitle>Executor:</NodeDetailsTitle>
       </div>

@@ -222,7 +222,9 @@ function WorkGraph() {
             }
             const response = await fetch(url);
             if (!response.ok) {
-              throw new Error('Failed to fetch data');
+              const errorText = await response.text(); // Read the error response
+              console.error(`Error fetching data from ${url}:`, errorText);
+              throw new Error(`Failed to fetch data: ${errorText}`);
             }
 
             const data = await response.json();

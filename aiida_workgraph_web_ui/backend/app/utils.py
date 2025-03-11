@@ -102,7 +102,7 @@ def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, An
     else:
         tdata_short["inputs"] = ""
         tdata_short["outputs"] = ""
-
+    tdata_short["state"] = process_info.get("state", "") if process_info else ""
     return tdata_short
 
 
