@@ -10,7 +10,7 @@ router = APIRouter()
 async def read_datanode_data(
     skip: int = Query(0, ge=0),
     limit: int = Query(15, gt=0, le=500),
-    sortField: str = Query("pk", pattern="^(pk|ctime|node_type|label)$"),
+    sortField: str = Query("pk", pattern="^(pk|ctime|node_type|label|description)$"),
     sortOrder: str = Query("desc", pattern="^(asc|desc)$"),
     filterModel: str | None = Query(None),  # <-- NEW
 ) -> Dict[str, Any]:
@@ -46,6 +46,7 @@ async def read_datanode_data(
                 "ctime": "ctime",
                 "node_type": "node_type",
                 "label": "label",
+                "description": "description",
             }
             if field not in field_map:
                 continue  # silently ignore unknown fields
@@ -73,6 +74,7 @@ async def read_datanode_data(
                         {"id": int(value)} if value.isdigit() else {},
                         {"node_type": like},
                         {"label": like},
+                        {"description": like},
                     ]
                 }
                 or_blocks_per_value.append(or_block)
@@ -87,12 +89,18 @@ async def read_datanode_data(
     qb.append(
         Data,
         filters=filters,
-        project=["id", "uuid", "ctime", "node_type", "label"],
+        project=["id", "uuid", "ctime", "node_type", "label", "description"],
         tag="d",
     )
 
     # -------------- server‑side order / paging -------------- #
-    col_map = {"pk": "id", "ctime": "ctime", "node_type": "node_type", "label": "label"}
+    col_map = {
+        "pk": "id",
+        "ctime": "ctime",
+        "node_type": "node_type",
+        "label": "label",
+        "description": "description",
+    }
     qb.order_by({"d": {col_map[sortField]: sortOrder}})
     total_rows = qb.count()
     qb.offset(skip).limit(limit)
@@ -104,8 +112,9 @@ async def read_datanode_data(
             "ctime": time_ago(ctime),
             "node_type": node_type,
             "label": label,
+            "description": description,
         }
-        for pk, uuid, ctime, node_type, label in qb.all()
+        for pk, uuid, ctime, node_type, label, description in qb.all()
     ]
     return {"total": total_rows, "data": page}
 

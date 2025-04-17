@@ -124,7 +124,8 @@ function DataNode() {
         },
         { field: 'ctime',      headerName: 'Created',  width: 150, filterable: true },
         { field: 'node_type',  headerName: 'Type',     width: 200, filterable: true },
-        { field: 'label',      headerName: 'Label',    width: 250, filterable: true },
+        { field: 'label',      headerName: 'Label',    width: 250, filterable: true, editable: true },
+        { field: 'description',      headerName: 'Description',    width: 250, filterable: true, editable: true },
         {
           field: 'actions',
           headerName: 'Actions',
