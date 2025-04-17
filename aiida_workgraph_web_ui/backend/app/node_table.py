@@ -70,8 +70,7 @@ def make_node_router(
 ) -> APIRouter:
     """
     Return an APIRouter exposing GET /…-data, PUT /…-data/{id},
-    POST pause/play and DELETE with dry‑run – exactly the contract your
-    table expects – for any AiiDA node subclass.
+    POST pause/play and DELETE with dry‑run for any AiiDA node subclass.
     """
     from aiida.orm import QueryBuilder
     from aiida.engine.processes.control import pause_processes, play_processes

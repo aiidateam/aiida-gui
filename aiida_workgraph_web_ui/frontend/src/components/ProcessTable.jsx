@@ -1,6 +1,5 @@
-// pages/ProcessTable.jsx
 import { IconButton, Tooltip } from '@mui/material';
-import { Delete, Pause, PlayArrow } from '@mui/icons-material';
+import { Pause, PlayArrow } from '@mui/icons-material';
 import NodeTable from './NodeTable';
 
 const processColumns = linkPrefix => ([
@@ -8,7 +7,40 @@ const processColumns = linkPrefix => ([
     renderCell:p => <a href={`${linkPrefix}/${p.value}`}>{p.value}</a> },
   { field:'ctime', headerName:'Created',     width:150 },
   { field:'process_label', headerName:'Process label', width:260, sortable:false },
-  { field:'process_state',  headerName:'State',  width:140, sortable:false },
+  {
+    field: 'process_state',
+    headerName: 'State',
+    width: 140,
+    sortable: false,
+    renderCell: ({ row }) => {
+      const { process_state, exit_status } = row;
+      let color = 'inherit';
+
+      switch (process_state) {
+        case 'Finished':
+          {
+            const statusCode = parseInt(exit_status, 10);
+            color = !isNaN(statusCode) && statusCode > 0 ? 'red' : 'green';
+          }
+          break;
+        case 'Excepted':
+        case 'Failed':
+          color = 'red';
+          break;
+        case 'Running':
+          color = 'blue';
+          break;
+        case 'Waiting':
+        case 'Created':
+          color = 'orange';
+          break;
+        default:
+          color = 'inherit';
+      }
+
+      return <span style={{ color }}>{process_state} [{exit_status}]</span>;
+    },
+  },
   { field:'process_status', headerName:'Status', width:140, sortable:false },
   { field:'label',         headerName:'Label',  width:220, editable:true },
   { field:'description',   headerName:'Description', width:240, editable:true },
@@ -18,33 +50,31 @@ const processColumns = linkPrefix => ([
     renderCell:({ value }) => value ? 'Yes' : 'No' },
 ]);
 
-function processActions(row, { endpointBase, refetch }) {
-  const post = url => fetch(url, { method:'POST' }).then(refetch);
-  if (/(Finished|Failed|Excepted)/.test(row.process_state))
-    return (
-      <Tooltip title="Delete"><IconButton color="error"
-        onClick={() => post(`${endpointBase}/delete/${row.pk}`)}><Delete/></IconButton></Tooltip>
-    );
+/* pause / play buttons – delete is handled generically */
+function extraActions(row, { endpointBase, refetch }) {
+    const post = url => fetch(url, { method:'POST' }).then(refetch);
 
-  if (row.paused)
-    return (
-      <>
-        <Tooltip title="Resume"><IconButton color="success"
-          onClick={() => post(`${endpointBase}/play/${row.pk}`)}><PlayArrow/></IconButton></Tooltip>
-        <Tooltip title="Delete"><IconButton color="error"
-          onClick={() => post(`${endpointBase}/delete/${row.pk}`)}><Delete/></IconButton></Tooltip>
-      </>
-    );
+    if (row.paused)
+      return (
+        <Tooltip title="Resume">
+          <IconButton color="success"
+            onClick={() => post(`${endpointBase}/play/${row.pk}`)}>
+            <PlayArrow/>
+          </IconButton>
+        </Tooltip>
+      );
 
-  return (
-    <>
-      <Tooltip title="Pause"><IconButton
-        onClick={() => post(`${endpointBase}/pause/${row.pk}`)}><Pause/></IconButton></Tooltip>
-      <Tooltip title="Delete"><IconButton color="error"
-        onClick={() => post(`${endpointBase}/delete/${row.pk}`)}><Delete/></IconButton></Tooltip>
-    </>
-  );
-}
+    if (/(Finished|Failed|Excepted)/.test(row.process_state))
+      return null;                       // only Delete remains → NodeTable shows it
+
+    return (
+      <Tooltip title="Pause">
+        <IconButton onClick={() => post(`${endpointBase}/pause/${row.pk}`)}>
+          <Pause/>
+        </IconButton>
+      </Tooltip>
+    );
+  }
 
 export function ProcessTable() {
     return (
@@ -54,7 +84,7 @@ export function ProcessTable() {
         linkPrefix="/process"
         config={{
           columns       : processColumns,
-          buildActions  : processActions,
+          buildExtraActions: extraActions,
           editableFields: ['label', 'description'],
         }}
       />
@@ -71,7 +101,7 @@ export function ProcessTable() {
         linkPrefix="/workgraph"
         config={{
           columns       : processColumns,
-          buildActions  : processActions,
+          buildExtraActions: extraActions,
           editableFields: ['label', 'description'],
         }}
       />

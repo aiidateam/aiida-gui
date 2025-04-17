@@ -12,7 +12,6 @@ REACT_PORT = "3000"
 def get_package_root():
     """Returns the root directory of the package."""
     current_file = Path(__file__)
-    # Root directory of your package
     return current_file.parent
 
 

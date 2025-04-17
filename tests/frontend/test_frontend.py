@@ -191,7 +191,7 @@ def test_workgraph_delete(web_server, page, ran_wg_calcfunction):
     # Confirm deletion
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
-    page.get_by_role("button", name="Confirm").click()
+    page.get_by_role("button", name="Delete").click()
     # Wait for table to update
     expect(page.locator('[role="row"]')).to_have_count(initial_rows - 1)
 
@@ -219,6 +219,6 @@ def test_datanode_delete(web_server, page, ran_wg_calcfunction):
     # Confirm deletion
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
-    page.get_by_role("button", name="Confirm").click()
+    page.get_by_role("button", name="Delete").click()
     # Wait for table to update
     expect(page.locator('[role="row"]')).to_have_count(initial_rows - 1)

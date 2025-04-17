@@ -23,7 +23,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // Extend the Window interface
 declare global {
   interface Window {
-    editor?: any; // You can replace `any` with a more specific type if available
+    editor?: any; //  can replace `any` with a more specific type if available
   }
 }
 

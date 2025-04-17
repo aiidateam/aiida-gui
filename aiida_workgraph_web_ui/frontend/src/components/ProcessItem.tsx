@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from 'antd';
-import { PageContainer, TopMenu } from './WorkGraphItemStyles'; // you already have these
+import { PageContainer, TopMenu } from './WorkGraphItemStyles';
 import WorkGraphSummary from './WorkGraphSummary';
 import WorkGraphLog from './WorkGraphLog';
 

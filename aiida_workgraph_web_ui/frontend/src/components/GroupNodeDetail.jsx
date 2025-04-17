@@ -19,7 +19,6 @@ const memberColumns = linkPrefix => ([
 ]);
 
 /* optional: allow removing members from the group (delete icon)           */
-/* if you **don’t** want that, return null from buildActions and omit this */
 function memberActions(row, { endpointBase, refetch }) {
   return (
     <Tooltip title="Remove from group">

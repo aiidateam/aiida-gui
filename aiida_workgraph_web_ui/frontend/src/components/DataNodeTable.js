@@ -1,7 +1,4 @@
-// pages/DataNodeTable.jsx
-import { IconButton, Tooltip } from '@mui/material';
-import { Delete } from '@mui/icons-material';
-import NodeTable from '../components/NodeTable';
+import NodeTable from './NodeTable';
 
 const dataColumns = linkPrefix => ([
   { field:'pk', headerName:'PK', width:90,
@@ -12,11 +9,6 @@ const dataColumns = linkPrefix => ([
   { field:'description',headerName:'Description', width:250, editable:true },
 ]);
 
-const dataActions = (row, { endpointBase, refetch }) => (
-  <Tooltip title="Delete"><IconButton color="error"
-    onClick={() => fetch(`${endpointBase}/delete/${row.pk}`, { method:'DELETE' })
-                    .then(refetch)}><Delete/></IconButton></Tooltip>
-);
 
 export default () =>
   <NodeTable
@@ -25,7 +17,6 @@ export default () =>
     linkPrefix="/datanode"
     config={{
       columns       : dataColumns,
-      buildActions  : dataActions,
       editableFields: ['label', 'description'],
     }}
   />;

@@ -285,7 +285,6 @@ function SchedulerList() {
 
 /**
  * Some inline styling for demonstration.
- * Replace with your own CSS or a UI library if desired.
  */
 
 // Basic reusable styles

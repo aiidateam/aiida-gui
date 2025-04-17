@@ -27,7 +27,10 @@ function Home() {
                 Process Table
               </Button>
               <Button component={Link} to="/datanode" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
-                DataNode Table
+                Data Table
+              </Button>
+              <Button component={Link} to="/groupnode" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
+                Group Table
               </Button>
               <Button component={Link} to="/scheduler" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
                 Scheduler

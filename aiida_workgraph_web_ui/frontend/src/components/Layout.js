@@ -22,7 +22,7 @@ const Layout = ({ children }) => {
         </nav>
       </div>
       <div className="content">
-        {children} {/* This is where your page-specific content will be rendered */}
+        {children} {/* This is where page-specific content will be rendered */}
       </div>
     </div>
   );

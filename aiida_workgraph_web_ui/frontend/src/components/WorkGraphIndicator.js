@@ -47,7 +47,6 @@ function Breadcrumbs({ parentWorkGraphs }) {
       // item is a plain string (node name, etc.)
       if (!pathSoFar) {
         // If pathSoFar is empty, we can't append. Maybe skip or handle error.
-        // Typically you'd always have at least one [label, pk] first.
         continue;
       }
       // Append the node name (item) to the path
@@ -56,7 +55,7 @@ function Breadcrumbs({ parentWorkGraphs }) {
     }
   }
 
-  // You can pick your own separator or icon
+  // can pick other separator or icon
   const separatorIcon = '🍞';
 
   return (
