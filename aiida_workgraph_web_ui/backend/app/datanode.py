@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Union
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body
 from aiida import orm
 import json
 
@@ -159,3 +159,34 @@ async def delete_data_node(
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/api/datanode/{id}")
+async def update_data_node(
+    id: int,
+    payload: Dict[str, str] = Body(
+        ..., examples={"label": "new‑label", "description": "some text"}
+    ),
+):
+    """
+    Update the label and/or description of a single Data node.
+    Accepts JSON like {"label": "foo"} or {"description": "bar"}.
+    """
+    try:
+        node = orm.load_node(id)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Data node {id} not found")
+
+    allowed = {"label", "description"}
+    changed = False
+
+    for key, value in payload.items():
+        if key not in allowed:
+            continue
+        setattr(node, key, value)
+        changed = True
+
+    if not changed:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+
+    return {"updated": True, "pk": id, **{k: getattr(node, k) for k in allowed}}
