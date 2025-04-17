@@ -1,76 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { DataGrid, gridPageCountSelector, gridPageSelector,
-         useGridApiContext, useGridSelector } from '@mui/x-data-grid';
-import { Pagination } from '@mui/material';
-import { IconButton, Tooltip, TextField } from '@mui/material';
+import React, { useState, useEffect, useCallback} from 'react';
+import {
+  DataGrid,
+  gridPageCountSelector,
+  gridPageSelector,
+  useGridApiContext,
+  useGridSelector,
+  GridToolbar           //  <-- NEW (toolbar gives the “Filters” / quick‑filter UI)
+} from '@mui/x-data-grid';
+import { Pagination, IconButton, Tooltip } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import WorkGraphConfirmModal from './WorkGraphModals';
 import 'react-toastify/dist/ReactToastify.css';
 
-/* ---------- Custom Pagination that shows page numbers --------- */
+/* ---------- pagination component (unchanged) ---------- */
 function MuiPagination() {
-    const apiRef   = useGridApiContext();
-    const page     = useGridSelector(apiRef, gridPageSelector);
-    const pageCount= useGridSelector(apiRef, gridPageCountSelector);
+  const apiRef    = useGridApiContext();
+  const page      = useGridSelector(apiRef, gridPageSelector);
+  const pageCount = useGridSelector(apiRef, gridPageCountSelector);
 
-    return (
-      <Pagination
-        color="primary"
-        page={page + 1}
-        count={pageCount}
-        onChange={(_, value) => apiRef.current.setPage(value - 1)}
-        showFirstButton showLastButton
-      />
-    );
-  }
+  return (
+    <Pagination
+      color="primary"
+      page={page + 1}
+      count={pageCount}
+      onChange={(_, value) => apiRef.current.setPage(value - 1)}
+      showFirstButton
+      showLastButton
+    />
+  );
+}
 
-/* ------------------ DataNode Component ------------------ */
+/* ----------------------- main component ----------------------- */
 function DataNode() {
-  const [rows, setRows] = useState([]);
-  const [rowCount, setRowCount] = useState(0);                    // NEW
-  const [searchTypeQuery, setSearchTypeQuery] = useState('');
-  const [searchLabelQuery, setSearchLabelQuery] = useState('');
-  const [paginationModel, setPaginationModel] = useState({        // NEW
-    page: 0,
-    pageSize: 15,
-  });
-  const [sortModel, setSortModel] = useState([
-    { field: 'pk', sort: 'desc' },
-  ]);
+  const [rows, setRows]                 = useState([]);
+  const [rowCount, setRowCount]         = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
+  const [sortModel, setSortModel]       = useState([{ field: 'pk', sort: 'desc' }]);
+  const [filterModel, setFilterModel]   = useState({ items: [] });      // NEW
   const [toDeleteItem, setToDeleteItem] = useState(null);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [bodyTextConfirmDeleteModal, setBodyTextConfirmDeleteModal] = useState(<p />);
 
-  /* ------------------ SERVER‑SIDE FETCH ------------------ */
-  useEffect(() => {
+  // 🆕 put this just above your `useEffect` hooks
+  const fetchGridData = useCallback(() => {
     const { page, pageSize } = paginationModel;
-    const skip  = page * pageSize;
-    const limit = pageSize;
+    const skip       = page * pageSize;
+    const limit      = pageSize;
+    const sortField  = sortModel[0]?.field ?? 'pk';
+    const sortOrder  = sortModel[0]?.sort  ?? 'desc';
 
-    const sortField = sortModel[0]?.field ?? 'pk';
-    const sortOrder = sortModel[0]?.sort  ?? 'desc';
-
-    fetch(
+    const url =
       `http://localhost:8000/api/datanode-data?` +
-      `typeSearch=${encodeURIComponent(searchTypeQuery)}` +
-      `&labelSearch=${encodeURIComponent(searchLabelQuery)}` +
-      `&skip=${skip}&limit=${limit}` +
-      `&sortField=${sortField}&sortOrder=${sortOrder}`
-    )
+      `skip=${skip}&limit=${limit}` +
+      `&sortField=${sortField}&sortOrder=${sortOrder}` +
+      `&filterModel=${encodeURIComponent(JSON.stringify(filterModel))}`;
+
+    return fetch(url)
       .then(r => r.json())
       .then(({ data, total }) => {
         setRows(data);
         setRowCount(total);
-      })
-      .catch(err => console.error('fetch error', err));
-  }, [searchTypeQuery, searchLabelQuery, paginationModel, sortModel]);
+      });
+  }, [paginationModel, sortModel, filterModel]);
+  /* --------------- server‑side fetch --------------- */
+  /* main data fetch */
+  useEffect(() => { fetchGridData(); }, [fetchGridData]);
 
-  /* reset to first page whenever a new search is typed */
+  /* reset to first page whenever a new filter is applied */
   useEffect(() => {
-    setPaginationModel((m) => ({ ...m, page: 0 }));
-  }, [searchTypeQuery, searchLabelQuery]);
+    setPaginationModel(m => ({ ...m, page: 0 }));
+  }, [filterModel]);
 
     useEffect(() => {
         if (toDeleteItem !== null) {
@@ -104,10 +105,7 @@ function DataNode() {
             .then(data => {
                 if (data.deleted) {
                     toast.success(data.message);
-                    fetch(`http://localhost:8000/api/datanode-data?typeSearch=${searchTypeQuery}&labelSearch=${searchLabelQuery}`)
-                        .then(response => response.json())
-                        .then(data => setRows(data))
-                        .catch(error => console.error('Error fetching data: ', error));
+                    fetchGridData();                     // <-- reuse helpe
                 } else {
                     toast.error('Error deleting item');
                 }
@@ -121,16 +119,17 @@ function DataNode() {
           field: 'pk',
           headerName: 'PK',
           width: 90,
-          renderCell: (params) => <Link to={`/datanode/${params.row.pk}`}>{params.value}</Link>,
+          filterable: true,
+          renderCell: params => <Link to={`/datanode/${params.row.pk}`}>{params.value}</Link>,
         },
-        { field: 'ctime', headerName: 'Created', width: 150 },
-        { field: 'node_type', headerName: 'Type', width: 200 },
-        { field: 'label', headerName: 'Label', width: 250 },
+        { field: 'ctime',      headerName: 'Created',  width: 150, filterable: true },
+        { field: 'node_type',  headerName: 'Type',     width: 200, filterable: true },
+        { field: 'label',      headerName: 'Label',    width: 250, filterable: true },
         {
           field: 'actions',
           headerName: 'Actions',
           width: 100,
-          renderCell: (params) => (
+          renderCell: params => (
             <Tooltip title="Delete">
               <IconButton onClick={() => setToDeleteItem(structuredClone(params.row))} color="error">
                 <Delete />
@@ -138,6 +137,7 @@ function DataNode() {
             </Tooltip>
           ),
           sortable: false,
+          filterable: false,
         },
       ];
 
@@ -145,45 +145,41 @@ function DataNode() {
         <div style={{ padding: '1rem' }}>
           <h2>Data Node</h2>
 
-          {/* Search Inputs */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            <TextField
-              label="Search by Type"
-              variant="outlined"
-              size="small"
-              value={searchTypeQuery}
-              onChange={(e) => setSearchTypeQuery(e.target.value)}
-            />
-            <TextField
-              label="Search by Label"
-              variant="outlined"
-              size="small"
-              value={searchLabelQuery}
-              onChange={(e) => setSearchLabelQuery(e.target.value)}
-            />
-          </div>
-
-          {/* DataGrid */}
+          {/* ---------------- DataGrid ---------------- */}
           <DataGrid
             rows={rows}
             columns={columns}
-            getRowId={(row) => row.pk}
+            getRowId={row => row.pk}
+
+            /* server‑side features */
             paginationMode="server"
-        sortingMode="server"
+            sortingMode="server"
+            filterMode="server"            /* <-- NEW :contentReference[oaicite:0]{index=0} */
 
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
+            rowCount={rowCount}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
 
-        sortModel={sortModel}
-        onSortModelChange={setSortModel}
+            sortModel={sortModel}
+            onSortModelChange={setSortModel}
 
-        rowCount={rowCount}
-        pageSizeOptions={[15, 30, 50]}
+            filterModel={filterModel}      /* NEW */
+            onFilterModelChange={setFilterModel}
 
-        /* swap in our page‑number component */
-        slots={{ pagination: MuiPagination }}
+            pageSizeOptions={[15, 30, 50]}
 
-        autoHeight
+            slots={{
+              pagination: MuiPagination,
+              toolbar:    GridToolbar,     /* gives “Filter” button + quick‑filter */
+            }}
+            slotProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 500 },
+              },
+            }}
+
+            autoHeight
           />
 
           <ToastContainer autoClose={3000} />
