@@ -27,19 +27,16 @@ def test_workgraph(web_server, page, ran_wg_calcfunction):
     # Check for WorkGraph Table Header
     assert page.get_by_role("heading", name="WorkGraph").is_visible()
 
-    # Check if the search input is visible
-    assert page.get_by_placeholder("Search...").is_visible()
-
     # Check for Table Headers in DataGrid
     assert page.get_by_role("columnheader", name="PK").is_visible()
     assert page.get_by_role("columnheader", name="Created").is_visible()
-    assert page.get_by_role("columnheader", name="Process Label").is_visible()
+    assert page.get_by_role("columnheader", name="Process label").is_visible()
     assert page.get_by_role("columnheader", name="State").is_visible()
     # I don't know why the Actions column is not visible
     # assert page.get_by_role("columnheader", name="Actions").is_visible()
 
     # Check pagination controls
-    assert page.locator(".MuiTablePagination-root").is_visible()
+    assert page.locator(".MuiPagination-root").is_visible()
 
     # Check if at least one row is visible
     page.locator('[data-field="process_label"]').get_by_text(

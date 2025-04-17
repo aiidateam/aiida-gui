@@ -177,3 +177,67 @@ def time_ago(past_time: datetime) -> str:
         return f"{delta.minutes}min ago"
     else:
         return "Just now"
+
+
+def translate_datagrid_filter_json(raw: str) -> dict:
+    """
+    Convert MUI DataGrid filterModel JSON into AiiDA QueryBuilder filters.
+    Supports column filters & quick filter.
+    """
+    import json
+
+    fm = json.loads(raw)
+    filters: dict[str, Any] = {}
+
+    #   DataGrid → QB column
+    field_map = {
+        "pk": "id",
+        "ctime": "ctime",
+        "process_label": "attributes.process_label",
+        "state": "attributes.process_state",
+        "exit_status": "attributes.exit_status",
+        "exit_message": "attributes.exit_message",
+        "label": "label",
+        "description": "description",
+    }
+
+    for item in fm.get("items", []):
+        field = item.get("field")
+        value = item.get("value")
+        operator = item.get("operator", "contains")
+        if not value or field not in field_map:
+            continue
+        col = field_map[field]
+
+        # numeric
+        if col == "id":
+            try:
+                filters[col] = int(value)
+            except ValueError:
+                continue
+        else:
+            if operator in ("contains", "equals", "is"):
+                filters[col] = {"like": f"%{value}%"}
+
+    # quick filter (space‑separated)
+    qf_values = fm.get("quickFilterValues", [])
+    if qf_values:
+        blocks = []
+        for val in qf_values:
+            like = {"like": f"%{val}%"}
+            blocks.append(
+                {
+                    "or": [
+                        {"id": int(val)} if val.isdigit() else {},
+                        {"attributes.process_label": like},
+                        {"attributes.process_state": like},
+                        {"attributes.process_status": like},
+                        {"attributes.exit_status": like},
+                        {"attributes.exit_message": like},
+                        {"label": like},
+                        {"description": like},
+                    ]
+                }
+            )
+        filters = {"and": [filters, *blocks]} if filters else {"and": blocks}
+    return filters

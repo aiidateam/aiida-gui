@@ -189,6 +189,7 @@ function DataNode() {
       <h2>Data Node</h2>
 
       <DataGrid
+        sortingOrder={['desc','asc']}
         rows={rows}
         columns={columns}
         getRowId={row => row.pk}

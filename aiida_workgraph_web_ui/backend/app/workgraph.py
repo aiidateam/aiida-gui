@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query
+from __future__ import annotations
+from fastapi import APIRouter, HTTPException, Query, Body
 from aiida import orm
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from aiida_workgraph.utils import get_parent_workgraphs
 from aiida.orm.utils.serialize import deserialize_unsafe
 import traceback
@@ -9,31 +10,109 @@ router = APIRouter()
 
 
 @router.get("/api/workgraph-data")
-async def read_workgraph_data(search: str = Query(None)):
-    from aiida_workgraph.cli.query_workgraph import WorkGraphQueryBuilder
+async def read_workgraph_data(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(15, gt=0, le=500),
+    sortField: str = Query(
+        "pk", pattern="^(pk|ctime|process_label|state|label|description)$"
+    ),
+    sortOrder: str = Query("desc", pattern="^(asc|desc)$"),
+    filterModel: Optional[str] = Query(None),
+):
+    """
+    Identical contract to /api/datanode-data
+    """
+    from aiida.orm import QueryBuilder
+    from aiida_workgraph.orm.workgraph import WorkGraphNode
+    from aiida_workgraph_web_ui.backend.app.utils import (
+        time_ago,
+        translate_datagrid_filter_json,
+    )
 
+    qb = QueryBuilder()
+    filters = {}
+
+    # ——— translate the DataGrid filter model (same helper you used for DataNode) ———
+    if filterModel:
+        filters = translate_datagrid_filter_json(filterModel)  # factor out for reuse
+
+    qb.append(
+        WorkGraphNode,  # ⚡ adjust to your node type
+        filters=filters,
+        project=[
+            "id",
+            "uuid",
+            "ctime",
+            "attributes.process_label",
+            "attributes.process_state",
+            "attributes.process_status",
+            "attributes.exit_status",
+            "attributes.exit_message",
+            "label",
+            "description",
+        ],
+        tag="data",
+    )
+
+    col_map = {
+        "pk": "id",
+        "ctime": "ctime",
+        "process_label": "attributes.process_label",
+        "state": "attributes.process_state",
+        "status": "attributes.process_status",
+        "exit_status": "attributes.exit_status",
+        "exit_message": "attributes.exit_message",
+        "label": "label",
+        "description": "description",
+    }
+    qb.order_by({"data": {col_map[sortField]: sortOrder}})
+
+    total_rows = qb.count()
+    qb.offset(skip).limit(limit)
+
+    page = [
+        {
+            "pk": pk,
+            "uuid": uuid,
+            "ctime": time_ago(ctime),
+            "process_label": plabel,
+            "state": state.title(),
+            "status": status,
+            "exit_status": exit_status,
+            "exit_message": exit_message,
+            "label": label,
+            "description": description,
+        }
+        for pk, uuid, ctime, plabel, state, status, exit_status, exit_message, label, description in qb.all()
+    ]
+    return {"total": total_rows, "data": page}
+
+
+# ——— PUT /api/workgraph/{id} to update label/description ———
+@router.put("/api/workgraph-data/{id}")
+async def update_workgraph_node(
+    id: int,
+    payload: Dict[str, str] = Body(
+        ..., examples={"label": "new-label", "description": "some text"}
+    ),
+):
     try:
-        relationships = {}
-        builder = WorkGraphQueryBuilder()
-        query_set = builder.get_query_set(
-            relationships=relationships,
-            # Add logic to apply search filter if search query is present
-            # This is just an example, you'll need to adjust it based on your actual query builder and data model
-            filters={"attributes.process_label": {"like": f"%{search}%"}}
-            if search
-            else None,
-            # order_by, past_days, limit, etc. can also be parameters
-        )
-        project = ["pk", "uuid", "state", "ctime", "mtime", "process_label"]
-        projected = builder.get_projected(query_set, projections=project)
-        # pop headers
-        projected.pop(0)
-        data = []
-        for p in projected:
-            data.append({project[i]: p[i] for i in range(len(project))})
-        return data
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Workgraph {id} not found")
+        node = orm.load_node(id)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"WorkGraph {id} not found")
+
+    allowed = {"label", "description"}
+    changed = False
+    for key, value in payload.items():
+        if key not in allowed:
+            continue
+        setattr(node, key, value)
+        changed = True
+
+    if not changed:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+
+    return {"updated": True, "pk": id, **{k: getattr(node, k) for k in allowed}}
 
 
 @router.get("/api/task/{id}/{path:path}")

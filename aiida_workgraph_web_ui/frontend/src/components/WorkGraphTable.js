@@ -1,315 +1,288 @@
-import React, { useState, useEffect } from 'react';
-import { DataGrid } from '@mui/x-data-grid';
-import { IconButton, Tooltip } from '@mui/material';
-import { PlayArrow, Pause, Delete } from '@mui/icons-material';
+// WorkGraphTable.jsx
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  DataGrid,
+  gridPageCountSelector,
+  gridPageSelector,
+  useGridApiContext,
+  useGridSelector,
+  GridToolbar,
+} from '@mui/x-data-grid';
+import { Pagination, IconButton, Tooltip } from '@mui/material';
+import { Delete, PlayArrow, Pause } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
-import { FaPlay, FaPause, FaTrash } from 'react-icons/fa';
+import WorkGraphConfirmModal from './WorkGraphModals';
 import 'react-toastify/dist/ReactToastify.css';
 
-import WorkGraphConfirmModal from './WorkGraphModals';
+/* ---------- tiny wrapper so the DataGrid uses MUI Pagination ---------- */
+function MuiPagination() {
+  const apiRef    = useGridApiContext();
+  const page      = useGridSelector(apiRef, gridPageSelector);
+  const pageCount = useGridSelector(apiRef, gridPageCountSelector);
 
-function WorkGraph() {
-  const [data, setData] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortModel, setSortModel] = useState([
-    { field: 'pk', sort: 'desc' }, // The initial sort
-  ]);
+  return (
+    <Pagination
+      color="primary"
+      page={page + 1}
+      count={pageCount}
+      onChange={(_, value) => apiRef.current.setPage(value - 1)}
+      showFirstButton
+      showLastButton
+    />
+  );
+}
 
-  // For the delete confirm modal
+/* ────────────────────────────── MAIN TABLE ────────────────────────────── */
+export default function WorkGraphTable() {
+  /* ---------- grid state ---------- */
+  const [rows,               setRows]               = useState([]);
+  const [rowCount,           setRowCount]           = useState(0);
+
+  const [paginationModel,    setPaginationModel]    = useState({ page: 0, pageSize: 15 });
+  const [sortModel,          setSortModel]          = useState([{ field: 'pk', sort: 'desc' }]);
+  const [filterModel,        setFilterModel]        = useState({ items: [] });
+
+  /* hide description at first render – users can toggle in column menu */
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
+    description: false,
+    exit_status: false,
+    exit_message: false,
+  });
+
+  /* delete‑modal state */
+  const [toDeleteItem,           setToDeleteItem]           = useState(null);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-  const [bodyTextConfirmDeleteModal, setBodyTextConfirmDeleteModal] = useState(<p></p>);
-  const [toDeleteItem, setToDeleteItem] = useState(null);
+  const [bodyTextConfirmDeleteModal, setBodyTextConfirmDeleteModal] = useState(<p />);
 
-  // Fetch data when component mounts or search changes
-  useEffect(() => {
-    fetch(`http://localhost:8000/api/workgraph-data?search=${searchQuery}`)
-      .then((response) => response.json())
-      .then((fetched) => {
-        setData(fetched);
-      })
-      .catch((error) => {
-        console.error('Error fetching data: ', error);
+  /* ╔══════════════════════════ data‑fetch helper ═══════════════════════╗ */
+  const fetchGridData = useCallback(() => {
+    const { page, pageSize } = paginationModel;
+    const skip       = page * pageSize;
+    const limit      = pageSize;
+    const sortField  = sortModel[0]?.field ?? 'pk';
+    const sortOrder  = sortModel[0]?.sort  ?? 'desc';
+
+    const url =
+      `http://localhost:8000/api/workgraph-data?` +
+      `skip=${skip}&limit=${limit}` +
+      `&sortField=${sortField}&sortOrder=${sortOrder}` +
+      `&filterModel=${encodeURIComponent(JSON.stringify(filterModel))}`;
+
+    return fetch(url)
+      .then(r => r.json())
+      .then(({ data, total }) => {
+        setRows(data);
+        setRowCount(total);
       });
-  }, [searchQuery]);
+  }, [paginationModel, sortModel, filterModel]);
 
-  // Handle server calls for the pause action
-  const handlePauseClick = (item) => {
-    fetch(`http://localhost:8000/api/workgraph/pause/${item.pk}`, {
-      method: 'POST',
-    })
-      .then((response) => response.json())
-      .then((respData) => {
-        if (respData.message) {
-          toast.success(respData.message);
-          // Refresh data
-          fetch(`http://localhost:8000/api/workgraph-data?search=${searchQuery}`)
-            .then((response) => response.json())
-            .then((fetched) => setData(fetched))
-            .catch((error) => console.error('Error fetching data: ', error));
-        } else {
-          toast.error('Error pausing item');
-        }
-      })
-      .catch((error) => console.error('Error pausing item: ', error));
-  };
+  /* fetch on mount & when paging / sorting / filtering changes */
+  useEffect(() => { fetchGridData(); }, [fetchGridData]);
 
-  // Handle server calls for the play action
-  const handlePlayClick = (item) => {
-    fetch(`http://localhost:8000/api/workgraph/play/${item.pk}`, {
-      method: 'POST',
-    })
-      .then((response) => response.json())
-      .then((respData) => {
-        if (respData.message) {
-          toast.success(respData.message);
-          // Refresh data
-          fetch(`http://localhost:8000/api/workgraph-data?search=${searchQuery}`)
-            .then((response) => response.json())
-            .then((fetched) => setData(fetched))
-            .catch((error) => console.error('Error fetching data: ', error));
-        } else {
-          toast.error('Error playing item');
-        }
-      })
-      .catch((error) => console.error('Error playing item: ', error));
-  };
-
-  // We'll run a "dry_run" to gather dependent PKs and show them in the modal
+  /* when a filter is added, reset to page 0 (same UX as DataNode) */
   useEffect(() => {
-    if (toDeleteItem != null) {
-      fetch(`http://localhost:8000/api/workgraph/delete/${toDeleteItem.pk}?dry_run=True`, {
-        method: 'DELETE',
-      })
-        .then((response) => response.json())
-        .then((dryRunResp) => {
-          if (dryRunResp.deleted_nodes.length > 0) {
-            // Always includes the main node
-            if (dryRunResp.deleted_nodes.length > 1) {
-              let toDeleteList = [...dryRunResp.deleted_nodes];
-              // remove the current pk from array for display
-              toDeleteList.splice(toDeleteList.indexOf(toDeleteItem.pk), 1);
+    setPaginationModel(m => ({ ...m, page: 0 }));
+  }, [filterModel]);
 
-              let formattedPks = toDeleteList.map((x) => ` ${x.toString()}`);
-              setBodyTextConfirmDeleteModal(
-                <p>
-                  Are you sure you want to delete node PK&lt;{toDeleteItem.pk}&gt; and{' '}
-                  {toDeleteList.length} dependent nodes?
-                  <b> A deletion is irreversible.</b>
-                  <br />
-                  <br />
-                  List of PKs that will be deleted:
-                  <br /> {formattedPks.toString()}
-                </p>
-              );
-            } else {
-              // Only the node itself
-              setBodyTextConfirmDeleteModal(
-                <p>
-                  Are you sure you want to delete node {toDeleteItem.pk}?
-                  <b> A deletion is irreversible.</b>
-                </p>
-              );
-            }
+  /* ╔═══════════════════════ delete flow (with dry‑run) ═════════════════╗ */
+  useEffect(() => {
+    if (toDeleteItem !== null) {
+      fetch(`http://localhost:8000/api/workgraph/delete/${toDeleteItem.pk}?dry_run=True`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.deleted_nodes.length > 0) {
+            const formatted_pks = data.deleted_nodes.map(x => ` ${x}`);
+            /* remove root pk from list before display */
+            data.deleted_nodes.splice(data.deleted_nodes.indexOf(toDeleteItem.pk), 1);
+            setBodyTextConfirmDeleteModal(
+              <p>
+                Are you sure you want to delete node PK&lt;{toDeleteItem.pk}&gt; and {data.deleted_nodes.length} dependent nodes?
+                <b> A deletion is irreversible.</b>
+                <br /><br />
+                Dependent nodes that will be deleted:
+                <br /> {formatted_pks.toString()}
+              </p>
+            );
             setShowConfirmDeleteModal(true);
           } else {
             toast.error('Error deleting item.');
           }
         })
-        .catch((error) => console.error('Error during dry_run for deletion:', error));
+        .catch(err => console.error('Error deleting item: ', err));
     }
   }, [toDeleteItem]);
 
-  // Confirm deletion action in the modal
   const handleDeleteNode = (item) => {
-    fetch(`http://localhost:8000/api/workgraph/delete/${item.pk}`, {
-      method: 'DELETE',
-    })
-      .then((response) => response.json())
-      .then((respData) => {
-        if (respData.deleted) {
-          toast.success(respData.message);
-          // Refresh data
-          fetch(`http://localhost:8000/api/workgraph-data?search=${searchQuery}`)
-            .then((res) => res.json())
-            .then((fetched) => setData(fetched))
-            .catch((error) => console.error('Error fetching data: ', error));
+    fetch(`http://localhost:8000/api/workgraph/delete/${item.pk}`, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.deleted) {
+          toast.success(data.message);
+          fetchGridData();              // refresh table
         } else {
           toast.error('Error deleting item');
         }
       })
-      .catch((error) => console.error('Error deleting item: ', error));
+      .catch(err => console.error('Error deleting item: ', err));
   };
 
-  /**
-   * DataGrid columns definition
-   *
-   * - field: property name from data items
-   * - headerName: Column label
-   * - renderCell: can be used to customize cell content (e.g., to show icons)
-   * - flex or width: controls the column width
-   */
+  /* ╔════════════════════ editable label / description ═════════════════╗ */
+  const processRowUpdate = useCallback(
+    async (newRow, oldRow) => {
+      const diff = {};
+      if (newRow.label       !== oldRow.label      ) diff.label       = newRow.label;
+      if (newRow.description !== oldRow.description) diff.description = newRow.description;
+      if (!Object.keys(diff).length) return oldRow;
+
+      try {
+        const r = await fetch(`http://localhost:8000/api/workgraph-data/${newRow.pk}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(diff),
+        });
+        if (!r.ok) throw new Error((await r.json()).detail);
+        toast.success(`Saved PK ${newRow.pk}`);
+        return newRow;
+      } catch (err) {
+        toast.error(`Save failed – ${err.message}`);
+        return oldRow;
+      }
+    },
+    [],
+  );
+
+  /* ╔════════════════════════════ columns ══════════════════════════════╗ */
   const columns = [
     {
       field: 'pk',
       headerName: 'PK',
-      width: 80,
-      renderCell: (params) => {
-        return <Link to={`/workgraph/${params.row.pk}`}>{params.value}</Link>;
-      },
-      sortable: true,
+      width: 90,
+      renderCell: params => <Link to={`/workgraph/${params.value}`}>{params.value}</Link>,
     },
-    {
-      field: 'ctime',
-      headerName: 'Created',
-      width: 150,
-      sortable: true,
-    },
-    {
-      field: 'process_label',
-      headerName: 'Process Label',
-      width: 300,
-      sortable: false,
-    },
-    {
-      field: 'state',
-      headerName: 'State',
-      width: 150,
-      sortable: false,
-    },
+    { field: 'ctime',         headerName: 'Created',  width: 150 },
+    { field: 'process_label', headerName: 'Process label',  width: 260, sortable: false },
+    { field: 'state',         headerName: 'State',    width: 140, sortable: false },
+    { field: 'status',         headerName: 'Status',    width: 140, sortable: false },
+    /* ⚡ new editable columns (optional – only if you store these on the node) */
+    { field: 'label',         headerName: 'Label',        width: 220, editable: true },
+    { field: 'description',   headerName: 'Description',  width: 240, editable: true },
+    { field: 'exit_status',   headerName: 'Exit status',  editable: false, sortable: false },
+    { field: 'exit_message',   headerName: 'Exit message',  width: 240, editable: false, sortable: false },
+    /* ─────────── actions (play / pause / delete) ─────────── */
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 180, // Enough space for buttons
+      width: 160,
       sortable: false,
-      renderCell: (params) => {
+      filterable: false,
+      renderCell: params => {
         const item = params.row;
-
-        // If state is "finished", "failed", or "excepted", show NO Play/Pause
-        if (
-          item.state.includes('Finished') ||
-          item.state.includes('Failed') ||
-          item.state.includes('Excepted')
-        ) {
+        /* finished / failed / excepted ⇒ only delete */
+        if (/(Finished|Failed|Excepted)/.test(item.state)) {
           return (
             <Tooltip title="Delete">
-              <IconButton
-                onClick={() => setToDeleteItem(structuredClone(item))}
-                color="error"
-              >
+              <IconButton onClick={() => setToDeleteItem(structuredClone(item))} color="error">
                 <Delete />
               </IconButton>
             </Tooltip>
           );
         }
-
-        // If state includes "running" or "waiting", show the Pause button
-        if (
-          item.state.includes('Running') ||
-          item.state.includes('Waiting')
-        ) {
+        /* running / waiting ⇒ pause + delete */
+        if (/(Running|Waiting)/.test(item.state)) {
           return (
             <>
               <Tooltip title="Pause">
-                <IconButton onClick={() => handlePauseClick(item)} color="primary">
+                <IconButton onClick={() => fetch(`http://localhost:8000/api/workgraph/pause/${item.pk}`, { method: 'POST' })
+                  .then(() => { toast.success('Paused'); fetchGridData(); })}
+                >
                   <Pause />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Delete">
-                <IconButton
-                  onClick={() => setToDeleteItem(structuredClone(item))}
-                  color="error"
-                >
+                <IconButton onClick={() => setToDeleteItem(structuredClone(item))} color="error">
                   <Delete />
                 </IconButton>
               </Tooltip>
             </>
           );
         }
-
-        // If state includes "pause", show the Play/Resume button
-        if (item.state.includes('Pause')) {
-          return (
-            <>
-              <Tooltip title="Resume">
-                <IconButton onClick={() => handlePlayClick(item)} color="success">
-                  <PlayArrow />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton
-                  onClick={() => setToDeleteItem(structuredClone(item))}
-                  color="error"
-                >
-                  <Delete />
-                </IconButton>
-              </Tooltip>
-            </>
-          );
-        }
-
-        // Default fallback: just show Delete if the state doesn't match any above
+        /* paused ⇒ play + delete */
         return (
-          <Tooltip title="Delete">
-            <IconButton
-              onClick={() => setToDeleteItem(structuredClone(item))}
-              color="error"
-            >
-              <Delete />
-            </IconButton>
-          </Tooltip>
+          <>
+            <Tooltip title="Resume">
+              <IconButton onClick={() => fetch(`http://localhost:8000/api/workgraph/play/${item.pk}`, { method: 'POST' })
+                .then(() => { toast.success('Resumed'); fetchGridData(); })}
+                color="success"
+              >
+                <PlayArrow />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton onClick={() => setToDeleteItem(structuredClone(item))} color="error">
+                <Delete />
+              </IconButton>
+            </Tooltip>
+          </>
         );
       },
     },
   ];
 
+  /* ╔════════════════════════════ JSX ══════════════════════════════════╗ */
   return (
     <div style={{ padding: '1rem' }}>
       <h2>WorkGraph</h2>
 
-      {/* Search input */}
-      <div style={{ marginBottom: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Search..."
-          style={{ width: '300px' }}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      <DataGrid
+        sortingOrder={['desc','asc']}
+        rows={rows}
+        columns={columns}
+        getRowId={row => row.pk}
 
-      {/* DataGrid container */}
-      <div style={{ height: '100%', width: '100%' }}>
-        <DataGrid
-          rows={data}
-          columns={columns}
-          getRowId={(row) => row.pk} // Use pk as unique identifier
-          initialState={{
-            pagination: { paginationModel: { pageSize: 15} },
-          }}
-          pageSizeOptions={[15, 30, 50]}
-          pagination
-          // Sorting configuration
-          sortModel={sortModel}
-          onSortModelChange={(model) => {
-            setSortModel(model);
-          }}
-        />
-      </div>
+        /* server‑side goodies */
+        rowCount={rowCount}
+        paginationMode="server"
+        sortingMode="server"
+        filterMode="server"
+
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
+
+        pageSizeOptions={[15, 30, 50]}
+
+        columnVisibilityModel={columnVisibilityModel}
+        onColumnVisibilityModelChange={setColumnVisibilityModel}
+
+        processRowUpdate={processRowUpdate}
+        onProcessRowUpdateError={err => toast.error(err.message)}
+        editMode="cell"
+
+        /* slots */
+        slots={{ pagination: MuiPagination, toolbar: GridToolbar }}
+        slotProps={{
+          toolbar: {
+            showQuickFilter: true,               // free‑text search
+            quickFilterProps: { debounceMs: 500 }
+          },
+        }}
+
+        autoHeight
+      />
 
       <ToastContainer autoClose={3000} />
 
       <WorkGraphConfirmModal
         show={showConfirmDeleteModal}
         setShow={setShowConfirmDeleteModal}
-        confirmAction={() => {
-          if (toDeleteItem) handleDeleteNode(toDeleteItem);
-        }}
+        confirmAction={() => handleDeleteNode(toDeleteItem)}
         cancelAction={() => {}}
         bodyText={bodyTextConfirmDeleteModal}
       />
     </div>
   );
 }
-
-export default WorkGraph;
