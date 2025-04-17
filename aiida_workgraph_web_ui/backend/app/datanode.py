@@ -7,43 +7,49 @@ router = APIRouter()
 
 @router.get("/api/datanode-data")
 async def read_datanode_data(
-    typeSearch: str = Query(None),
-    labelSearch: str = Query(None),
-) -> List[Dict[str, Any]]:
+    typeSearch: str | None = Query(None),
+    labelSearch: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(15, gt=0, le=500),
+) -> Dict[str, Any]:
+    """
+    Return a slice of Data nodes plus the overall row count
+    so the frontend can paginate on the server.
+    """
     from aiida.orm import QueryBuilder, Data
     from aiida_workgraph_web_ui.backend.app.utils import time_ago
 
-    try:
-        builder = QueryBuilder()
-        filters = {}
+    qb = QueryBuilder()
+    filters: dict[str, Any] = {}
 
-        if typeSearch:
-            filters["node_type"] = {"like": f"%{typeSearch}%"}
+    if typeSearch:
+        filters["node_type"] = {"like": f"%{typeSearch}%"}
+    if labelSearch:
+        filters["label"] = {"like": f"%{labelSearch}%"}
 
-        if labelSearch:
-            filters["label"] = {"like": f"%{labelSearch}%"}
+    qb.append(
+        Data,
+        filters=filters,
+        project=["id", "uuid", "ctime", "node_type", "label"],
+        tag="d",
+    )
+    qb.order_by({"d": {"ctime": "desc"}})
 
-        builder.append(
-            Data,
-            filters=filters,
-            project=["id", "uuid", "ctime", "node_type", "label"],
-            tag="data",
-        )
-        builder.order_by({"data": {"ctime": "desc"}})
-        records = builder.all()
-        data = [
-            {
-                "pk": pk,
-                "uuid": uuid,
-                "ctime": time_ago(ctime),
-                "node_type": node_type,
-                "label": label,
-            }
-            for pk, uuid, ctime, node_type, label in records
-        ]
-        return data
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Data node {id} not found")
+    total_rows = qb.count()  # ← number of rows *before* slicing
+    qb.offset(skip).limit(limit)  # ← slice that will be sent to the client
+
+    records = qb.all()
+    page = [
+        {
+            "pk": pk,
+            "uuid": uuid,
+            "ctime": time_ago(ctime),
+            "node_type": node_type,
+            "label": label,
+        }
+        for pk, uuid, ctime, node_type, label in records
+    ]
+    return {"total": total_rows, "data": page}
 
 
 @router.get("/api/datanode/{id}")
