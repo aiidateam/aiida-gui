@@ -1,118 +1,14 @@
 from __future__ import annotations
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import HTTPException
 from aiida import orm
-from typing import List, Dict, Union, Optional
+from typing import List
 from aiida_workgraph.utils import get_parent_workgraphs
 from aiida.orm.utils.serialize import deserialize_unsafe
 import traceback
+from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
+from aiida_workgraph.orm.workgraph import WorkGraphNode
 
-router = APIRouter()
-
-
-@router.get("/api/workgraph-data")
-async def read_workgraph_data(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(15, gt=0, le=500),
-    sortField: str = Query(
-        "pk", pattern="^(pk|ctime|process_label|state|label|description)$"
-    ),
-    sortOrder: str = Query("desc", pattern="^(asc|desc)$"),
-    filterModel: Optional[str] = Query(None),
-):
-    """
-    Identical contract to /api/datanode-data
-    """
-    from aiida.orm import QueryBuilder
-    from aiida_workgraph.orm.workgraph import WorkGraphNode
-    from aiida_workgraph_web_ui.backend.app.utils import (
-        time_ago,
-        translate_datagrid_filter_json,
-    )
-
-    qb = QueryBuilder()
-    filters = {}
-
-    # ——— translate the DataGrid filter model (same helper you used for DataNode) ———
-    if filterModel:
-        filters = translate_datagrid_filter_json(filterModel)  # factor out for reuse
-
-    qb.append(
-        WorkGraphNode,  # ⚡ adjust to your node type
-        filters=filters,
-        project=[
-            "id",
-            "uuid",
-            "ctime",
-            "attributes.process_label",
-            "attributes.process_state",
-            "attributes.process_status",
-            "attributes.exit_status",
-            "attributes.exit_message",
-            "label",
-            "description",
-        ],
-        tag="data",
-    )
-
-    col_map = {
-        "pk": "id",
-        "ctime": "ctime",
-        "process_label": "attributes.process_label",
-        "state": "attributes.process_state",
-        "status": "attributes.process_status",
-        "exit_status": "attributes.exit_status",
-        "exit_message": "attributes.exit_message",
-        "label": "label",
-        "description": "description",
-    }
-    qb.order_by({"data": {col_map[sortField]: sortOrder}})
-
-    total_rows = qb.count()
-    qb.offset(skip).limit(limit)
-
-    page = [
-        {
-            "pk": pk,
-            "uuid": uuid,
-            "ctime": time_ago(ctime),
-            "process_label": plabel,
-            "state": state.title(),
-            "status": status,
-            "exit_status": exit_status,
-            "exit_message": exit_message,
-            "label": label,
-            "description": description,
-        }
-        for pk, uuid, ctime, plabel, state, status, exit_status, exit_message, label, description in qb.all()
-    ]
-    return {"total": total_rows, "data": page}
-
-
-# ——— PUT /api/workgraph/{id} to update label/description ———
-@router.put("/api/workgraph-data/{id}")
-async def update_workgraph_node(
-    id: int,
-    payload: Dict[str, str] = Body(
-        ..., examples={"label": "new-label", "description": "some text"}
-    ),
-):
-    try:
-        node = orm.load_node(id)
-    except Exception:
-        raise HTTPException(status_code=404, detail=f"WorkGraph {id} not found")
-
-    allowed = {"label", "description"}
-    changed = False
-    for key, value in payload.items():
-        if key not in allowed:
-            continue
-        setattr(node, key, value)
-        changed = True
-
-    if not changed:
-        raise HTTPException(status_code=400, detail="No updatable fields provided")
-
-    return {"updated": True, "pk": id, **{k: getattr(node, k) for k in allowed}}
+router = make_node_router(node_cls=WorkGraphNode, prefix="workgraph")
 
 
 @router.get("/api/task/{id}/{path:path}")
@@ -289,68 +185,6 @@ async def read_workgraph_logs(id: int):
         error_traceback = traceback.format_exc()  # Capture the full traceback
         print(error_traceback)
         raise HTTPException(status_code=404, detail=f"Workgraph {id} not found, {e}")
-
-
-# Route for pausing a workgraph item
-@router.post("/api/workgraph/pause/{id}")
-async def pause_workgraph(
-    id: int,
-):
-    from aiida.engine.processes.control import pause_processes
-
-    try:
-        # Perform the pause action here
-        node = orm.load_node(id)
-        pause_processes([node])
-        return {"message": f"Send message to pause workgraph {id}"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Route for playing a workgraph item
-@router.post("/api/workgraph/play/{id}")
-async def play_workgraph(
-    id: int,
-):
-    from aiida.engine.processes.control import play_processes
-
-    try:
-        # Perform the play action here
-        node = orm.load_node(id)
-        play_processes([node])
-        return {"message": f"Send message to play workgraph {id}"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Route for deleting a workgraph item
-@router.delete("/api/workgraph/delete/{id}")
-async def delete_workgraph(
-    id: int,
-    dry_run: bool = False,
-) -> Dict[str, Union[bool, str, List[int]]]:
-    from aiida.tools import delete_nodes
-
-    try:
-        # Perform the delete action here
-        deleted_nodes, was_deleted = delete_nodes([id], dry_run=dry_run)
-        if was_deleted:
-            return {
-                "deleted": True,
-                "message": f"Deleted workgraph {id}",
-                "deleted_nodes": list(deleted_nodes),
-            }
-        else:
-            message = f"Did not delete workgraph {id}"
-            if dry_run:
-                message += " [dry-run]"
-            return {
-                "deleted": False,
-                "message": message,
-                "deleted_nodes": list(deleted_nodes),
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # General function to manage task actions

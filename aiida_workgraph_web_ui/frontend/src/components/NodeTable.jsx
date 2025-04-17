@@ -1,5 +1,5 @@
 // components/NodeTable.jsx
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   DataGrid, GridToolbar,
   gridPageCountSelector, gridPageSelector,
@@ -31,18 +31,19 @@ export default function NodeTable({ title, endpointBase, linkPrefix }) {
   const {
     rows, rowCount,
     pagination, setPagination,
+    columnVisibilityModel, setColumnVisibilityModel,
     sortModel, setSortModel,
     filterModel, setFilter,
     refetch,
   } = useNodeTable(endpointBase);
 
   /* modal state */
-  const [toDelete, setToDelete] = React.useState(null);
-  const [showModal, setShowModal] = React.useState(false);
-  const [modalBody, setModalBody] = React.useState(<p/>);
+  const [toDelete, setToDelete] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalBody, setModalBody] = useState(<p/>);
 
   /* ------- dry‑run delete to build modal text ------- */
-  React.useEffect(() => {
+  useEffect(() => {
     if (!toDelete) return;
     fetch(`${endpointBase}/delete/${toDelete.pk}?dry_run=True`, { method: 'DELETE' })
       .then(r => r.json())
@@ -124,9 +125,12 @@ export default function NodeTable({ title, endpointBase, linkPrefix }) {
       <h2>{title}</h2>
 
       <DataGrid
+        sortingOrder={['desc','asc']}
         rows={rows} getRowId={r => r.pk} columns={columns}
         rowCount={rowCount} paginationMode="server" sortingMode="server" filterMode="server"
         pageSizeOptions={[15, 30, 50]}
+        columnVisibilityModel={columnVisibilityModel}
+        onColumnVisibilityModelChange={setColumnVisibilityModel}
         paginationModel={pagination} onPaginationModelChange={setPagination}
         sortModel={sortModel} onSortModelChange={setSortModel}
         filterModel={filterModel} onFilterModelChange={setFilter}

@@ -23,6 +23,9 @@ function Home() {
               <Button component={Link} to="/workgraph" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
                 WorkGraph Table
               </Button>
+              <Button component={Link} to="/process" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
+                Process Table
+              </Button>
               <Button component={Link} to="/datanode" variant="contained" color="primary" sx={{ margin: '0.5rem', textTransform: 'none' }}>
                 DataNode Table
               </Button>
