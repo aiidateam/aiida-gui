@@ -20,7 +20,7 @@ const WorkGraphButton = styled.button`
   }
 `;
 
-const NodeDetailsPanel = styled.div`
+const TaskDetailsPanel = styled.div`
   position: absolute;
   top: 0;
   right: 0;
@@ -38,13 +38,13 @@ const NodeDetailsPanel = styled.div`
   border-left: 1px solid #ddd;
 `;
 
-const NodeDetailsTitle = styled.h3`
+const TaskDetailsTitle = styled.h3`
   font-size: 1.2em;
   margin-bottom: 0.5em;
   color: #333;
 `;
 
-const NodeDetailsTable = styled.div`
+const TaskDetailsTable = styled.div`
   width: 100%;
   flex-grow: 1;
   overflow-y: auto;
@@ -92,10 +92,10 @@ const PythonCode = styled(SyntaxHighlighter)`
   font-family: monospace;
 `;
 
-function NodeDetails({
+function TaskDetails({
   selectedNode,
   onClose,
-  setShowNodeDetails,
+  setShowTaskDetails,
   parentPk,
   parentPath,
 }) {
@@ -105,10 +105,10 @@ function NodeDetails({
   const processPk = selectedNode.process?.pk;
   const nodeState = selectedNode.state?.toUpperCase() || '';
 
-  console.log('NodeDetails:', selectedNode);
+  console.log('TaskDetails:', selectedNode);
 
   const handleClose = () => {
-    setShowNodeDetails(false);
+    setShowTaskDetails(false);
     onClose();
   };
 
@@ -197,10 +197,10 @@ function NodeDetails({
   };
 
   return (
-    <NodeDetailsPanel>
+    <TaskDetailsPanel>
       <CloseButton onClick={handleClose}>Close</CloseButton>
 
-      <NodeDetailsTitle>Node Details</NodeDetailsTitle>
+      <TaskDetailsTitle>Task Details</TaskDetailsTitle>
 
       {/* Show button only if type is GRAPH_BUILDER, WORKGRAPH, or MAP */}
       {['GRAPH_BUILDER', 'WORKGRAPH', 'MAP'].includes(nodeType) && (
@@ -211,43 +211,43 @@ function NodeDetails({
 
       {/* Metadata table */}
       {selectedNode && (
-        <NodeDetailsTable>
+        <TaskDetailsTable>
           {selectedNode.metadata?.map(([property, value]) => (
             <NodeDetailRow key={property}>
               <NodeDetailProperty>{property}</NodeDetailProperty>
               <NodeDetailValue>{value}</NodeDetailValue>
             </NodeDetailRow>
           ))}
-        </NodeDetailsTable>
+        </TaskDetailsTable>
       )}
       <div>
-        <NodeDetailsTitle>Inputs:</NodeDetailsTitle>
+        <TaskDetailsTitle>Inputs:</TaskDetailsTitle>
       </div>
-      <NodeDetailsTable>
+      <TaskDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
           {renderInputs(selectedNode.inputs || {})}
         </ul>
-      </NodeDetailsTable>
+      </TaskDetailsTable>
 
       {/* Outputs */}
       <div>
-        <NodeDetailsTitle>Outputs:</NodeDetailsTitle>
+        <TaskDetailsTitle>Outputs:</TaskDetailsTitle>
       </div>
-      <NodeDetailsTable>
+      <TaskDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
           {renderInputs(selectedNode.outputs || {})}
         </ul>
-      </NodeDetailsTable>
+      </TaskDetailsTable>
 
       {/* Executor code */}
       <div>
-        <NodeDetailsTitle>Executor:</NodeDetailsTitle>
+        <TaskDetailsTitle>Executor:</TaskDetailsTitle>
       </div>
       <PythonCode language="python" style={dark}>
         {selectedNode.executor}
       </PythonCode>
-    </NodeDetailsPanel>
+    </TaskDetailsPanel>
   );
 }
 
-export default NodeDetails;
+export default TaskDetails;

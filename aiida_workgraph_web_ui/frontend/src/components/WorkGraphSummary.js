@@ -47,14 +47,14 @@ export const WorkGraphInfoStyle = styled.div`
   }
   `;
 
-  const NodeDetailsTitle = styled.h3`
+  const TaskDetailsTitle = styled.h3`
   font-size: 1.2em;
   margin-bottom: 0.5em;
   color: #333; /* Darker color for headers */
 `;
 
 
-  const NodeDetailsTable = styled.div`
+  const TaskDetailsTable = styled.div`
   width: 100%;
   flex-grow: 1; /* Allow this section to take available space */
   overflow-y: auto; /* Make only this section scrollable if needed */
@@ -105,21 +105,21 @@ function WorkGraphSummary({ summary }) {
         ))}
       </div>
       <div>
-        <NodeDetailsTitle>Inputs:</NodeDetailsTitle>
+        <TaskDetailsTitle>Inputs:</TaskDetailsTitle>
       </div>
-      <NodeDetailsTable>
+      <TaskDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
           {renderInputs(summary.inputs)}
         </ul>
-      </NodeDetailsTable>
+      </TaskDetailsTable>
       <div>
-        <NodeDetailsTitle>Outputs:</NodeDetailsTitle>
+        <TaskDetailsTitle>Outputs:</TaskDetailsTitle>
       </div>
-      <NodeDetailsTable>
+      <TaskDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
           {renderInputs(summary.outputs)}
         </ul>
-      </NodeDetailsTable>
+      </TaskDetailsTable>
     </div>
     </WorkGraphInfoStyle>
   );

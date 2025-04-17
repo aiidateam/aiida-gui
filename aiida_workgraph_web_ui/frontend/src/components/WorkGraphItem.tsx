@@ -7,7 +7,7 @@ import { Button, Switch } from "antd";
 import WorkGraphIndicator from './WorkGraphIndicator'; // Import the WorkGraphIndicator component
 import WorkGraphSummary from './WorkGraphSummary';
 import WorkGraphLog from './WorkGraphLog';
-import NodeDetails from './NodeDetails';
+import TaskDetails from './TaskDetails';
 import NodeDurationGraph from './WorkGraphDuration'
 import {
   PageContainer,
@@ -79,7 +79,7 @@ function WorkGraph() {
   const [workgraphData, setWorkGraphData] = useState({ summary: {}, nodes: {}, links: [], pk: [] });
   const [ref, editor] = useRete(createEditor, workgraphData);
   const [selectedNode, setSelectedNode] = useState({ metadata: [], executor: '' });
-  const [showNodeDetails, setShowNodeDetails] = useState(false);
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [workgraphHierarchy, setWorkGraphHierarchy] = useState([]);
   const [selectedView, setSelectedView] = useState('Editor');
   const [realtimeSwitch, setRealtimeSwitch] = useState(false); // State to manage the realtime switch
@@ -234,7 +234,7 @@ function WorkGraph() {
             console.error('Error fetching data:', error);
           }
 
-          setShowNodeDetails(true);
+          setShowTaskDetails(true);
         }
         return context;
       };
@@ -251,14 +251,14 @@ function WorkGraph() {
     }
   }, [editor]); // Depend on a stable reference of `editor`, `pk`, and `node_name`
 
-  const handleNodeDetailsClose = () => {
-    setShowNodeDetails(false);
+  const handleTaskDetailsClose = () => {
+    setShowTaskDetails(false);
   };
 
   // Memoize the editor to prevent re-creation
   const editorComponent = useMemo(() => (
       <div ref={ref} style={{ height: 'calc(100% - 2em)', width: '100%' }}></div>
-  ), [workgraphHierarchy, editor, showNodeDetails, selectedNode]); // Specify dependencies
+  ), [workgraphHierarchy, editor, showTaskDetails, selectedNode]); // Specify dependencies
 
 
   const handleTaskAction = async (action: string) => {
@@ -324,7 +324,7 @@ function WorkGraph() {
                     onChange={(checked) => setDetailNodeViewSwitch(checked)}
                     style={{ marginRight: '10px' }}
                     className="detail-switch"
-                  />Detail node view
+                  />Detail task view
                 </div>
               </div>
               <div>
@@ -335,13 +335,13 @@ function WorkGraph() {
                 <Button onClick={handleKill}>Kill</Button>
               </div>
               </LayoutAction>
-              {showNodeDetails && (
-              <NodeDetails
+              {showTaskDetails && (
+              <TaskDetails
               selectedNode={selectedNode}
               parentPk={pk}
               parentPath={subPath}
-              onClose={handleNodeDetailsClose}
-              setShowNodeDetails={setShowNodeDetails} />
+              onClose={handleTaskDetailsClose}
+              setShowTaskDetails={setShowTaskDetails} />
             )}
             </EditorContainer>
             {editorComponent}
