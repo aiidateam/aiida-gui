@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiida.manage import manager
 from aiida_workgraph_web_ui.backend.app.workgraph import router as workgraph_router
-from aiida_workgraph_web_ui.backend.app.process import router as process_router
+from aiida_workgraph_web_ui.backend.app.process_node import router as process_router
 from aiida_workgraph_web_ui.backend.app.daemon import router as daemon_router
 from aiida_workgraph_web_ui.backend.app.scheduler import router as scheduler_router
 from aiida_workgraph_web_ui.backend.app.data_node import router as datanode_router
