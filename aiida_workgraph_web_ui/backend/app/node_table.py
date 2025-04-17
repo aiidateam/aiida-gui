@@ -94,7 +94,11 @@ def make_node_router(
         filterModel: Optional[str] = Query(None),
     ):
         qb = QueryBuilder()
-        filters = translate_datagrid_filter_json(filterModel) if filterModel else {}
+        filters = (
+            translate_datagrid_filter_json(filterModel, project=project)
+            if filterModel
+            else {}
+        )
         qb.append(
             node_cls,
             filters=filters,

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './components/Home';
 import DataNodeTable from './components/DataNodeTable';
+import GroupNodeTable from './components/GroupNodeTable';
 import WorkGraphTable from './components/WorkGraphTable';
 import ProcessTable from './components/ProcessTable';
 import WorkGraphItem from './components/WorkGraphItem';
@@ -21,6 +22,7 @@ function App() {
             <Route path="/workgraph" element={<WorkGraphTable />} />
             <Route path="/process" element={<ProcessTable />} />
             <Route path="/datanode" element={<DataNodeTable />} />
+            <Route path="/groupnode" element={<GroupNodeTable />} />
             <Route path="/daemon" element={<Daemon />} />
             <Route path="/scheduler" element={<SchedulerList />} />
             <Route path="/scheduler/:name" element={<SchedulerDetail />} />

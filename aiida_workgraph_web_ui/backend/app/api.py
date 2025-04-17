@@ -6,6 +6,7 @@ from aiida_workgraph_web_ui.backend.app.process import router as process_router
 from aiida_workgraph_web_ui.backend.app.daemon import router as daemon_router
 from aiida_workgraph_web_ui.backend.app.scheduler import router as scheduler_router
 from aiida_workgraph_web_ui.backend.app.data_node import router as datanode_router
+from aiida_workgraph_web_ui.backend.app.group_node import router as groupnode_router
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os
@@ -49,6 +50,7 @@ async def read_root() -> dict:
 app.include_router(workgraph_router)
 app.include_router(process_router)
 app.include_router(datanode_router)
+app.include_router(groupnode_router)
 app.include_router(daemon_router)
 app.include_router(scheduler_router)
 

@@ -179,7 +179,7 @@ def time_ago(past_time: datetime) -> str:
         return "Just now"
 
 
-def translate_datagrid_filter_json(raw: str) -> dict:
+def translate_datagrid_filter_json(raw: str, project) -> dict:
     """
     Convert MUI DataGrid filterModel JSON into AiiDA QueryBuilder filters.
     Supports column filters & quick filter.
@@ -223,25 +223,13 @@ def translate_datagrid_filter_json(raw: str) -> dict:
 
     # quick filter (space‑separated)
     qf_values = fm.get("quickFilterValues", [])
+
     if qf_values:
         blocks = []
         for val in qf_values:
             like = {"like": f"%{val}%"}
-            blocks.append(
-                {
-                    "or": [
-                        {"id": int(val)} if val.isdigit() else {},
-                        {"node_type": like},
-                        {"attributes.process_label": like},
-                        {"attributes.process_state": like},
-                        {"attributes.process_status": like},
-                        {"attributes.exit_status": like},
-                        {"attributes.exit_message": like},
-                        {"attributes.paused": like},
-                        {"label": like},
-                        {"description": like},
-                    ]
-                }
-            )
+            block = [{key: like} for key in project]
+            block.append({"id": int(val)} if val.isdigit() else {})
+            blocks.append({"or": block})
         filters = {"and": [filters, *blocks]} if filters else {"and": blocks}
     return filters

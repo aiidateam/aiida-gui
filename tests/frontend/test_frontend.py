@@ -84,11 +84,11 @@ def test_workgraph_item(web_server, page, ran_wg_calcfunction):
     # assert input_x_control.input_value() == "2"
     # Verify that clicking on the gui node will pop up a sidebar
     gui_node.click()
-    node_details_sidebar = page.get_by_text("CloseNode")
+    node_details_sidebar = page.get_by_text("Task Details")
     node_details_sidebar.wait_for(state="visible")
     assert node_details_sidebar.is_visible()
 
-    node_details_sidebar.get_by_role("button", name="Close").click()
+    page.get_by_role("button", name="Close").click()
     node_details_sidebar.wait_for(state="hidden")
     assert node_details_sidebar.is_hidden()
 
