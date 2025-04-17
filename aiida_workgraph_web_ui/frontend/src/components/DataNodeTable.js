@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, gridPageCountSelector, gridPageSelector,
+         useGridApiContext, useGridSelector } from '@mui/x-data-grid';
+import { Pagination } from '@mui/material';
 import { IconButton, Tooltip, TextField } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
@@ -7,6 +9,24 @@ import { toast, ToastContainer } from 'react-toastify';
 import WorkGraphConfirmModal from './WorkGraphModals';
 import 'react-toastify/dist/ReactToastify.css';
 
+/* ---------- Custom Pagination that shows page numbers --------- */
+function MuiPagination() {
+    const apiRef   = useGridApiContext();
+    const page     = useGridSelector(apiRef, gridPageSelector);
+    const pageCount= useGridSelector(apiRef, gridPageCountSelector);
+
+    return (
+      <Pagination
+        color="primary"
+        page={page + 1}
+        count={pageCount}
+        onChange={(_, value) => apiRef.current.setPage(value - 1)}
+        showFirstButton showLastButton
+      />
+    );
+  }
+
+/* ------------------ DataNode Component ------------------ */
 function DataNode() {
   const [rows, setRows] = useState([]);
   const [rowCount, setRowCount] = useState(0);                    // NEW
@@ -16,7 +36,9 @@ function DataNode() {
     page: 0,
     pageSize: 15,
   });
-  const [sortModel] = useState([{ field: 'pk', sort: 'desc' }]);  // server sort not implemented yet
+  const [sortModel, setSortModel] = useState([
+    { field: 'pk', sort: 'desc' },
+  ]);
   const [toDeleteItem, setToDeleteItem] = useState(null);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [bodyTextConfirmDeleteModal, setBodyTextConfirmDeleteModal] = useState(<p />);
@@ -24,23 +46,31 @@ function DataNode() {
   /* ------------------ SERVER‑SIDE FETCH ------------------ */
   useEffect(() => {
     const { page, pageSize } = paginationModel;
-    const skip = page * pageSize;
+    const skip  = page * pageSize;
     const limit = pageSize;
 
+    const sortField = sortModel[0]?.field ?? 'pk';
+    const sortOrder = sortModel[0]?.sort  ?? 'desc';
+
     fetch(
-      `http://localhost:8000/api/datanode-data?typeSearch=${encodeURIComponent(
-        searchTypeQuery
-      )}&labelSearch=${encodeURIComponent(
-        searchLabelQuery
-      )}&skip=${skip}&limit=${limit}`
+      `http://localhost:8000/api/datanode-data?` +
+      `typeSearch=${encodeURIComponent(searchTypeQuery)}` +
+      `&labelSearch=${encodeURIComponent(searchLabelQuery)}` +
+      `&skip=${skip}&limit=${limit}` +
+      `&sortField=${sortField}&sortOrder=${sortOrder}`
     )
-      .then((res) => res.json())
+      .then(r => r.json())
       .then(({ data, total }) => {
         setRows(data);
         setRowCount(total);
       })
-      .catch((err) => console.error('Error fetching data: ', err));
-  }, [searchTypeQuery, searchLabelQuery, paginationModel]);
+      .catch(err => console.error('fetch error', err));
+  }, [searchTypeQuery, searchLabelQuery, paginationModel, sortModel]);
+
+  /* reset to first page whenever a new search is typed */
+  useEffect(() => {
+    setPaginationModel((m) => ({ ...m, page: 0 }));
+  }, [searchTypeQuery, searchLabelQuery]);
 
     useEffect(() => {
         if (toDeleteItem !== null) {
@@ -107,6 +137,7 @@ function DataNode() {
               </IconButton>
             </Tooltip>
           ),
+          sortable: false,
         },
       ];
 
@@ -137,13 +168,22 @@ function DataNode() {
             rows={rows}
             columns={columns}
             getRowId={(row) => row.pk}
-            paginationMode="server"                 /* ← key line */
-            rowCount={rowCount}                     /* ← total from server */
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[15, 30, 50]}
-            sortingMode="client"                    /* keep local until you add server sort */
-            autoHeight
+            paginationMode="server"
+        sortingMode="server"
+
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+
+        rowCount={rowCount}
+        pageSizeOptions={[15, 30, 50]}
+
+        /* swap in our page‑number component */
+        slots={{ pagination: MuiPagination }}
+
+        autoHeight
           />
 
           <ToastContainer autoClose={3000} />

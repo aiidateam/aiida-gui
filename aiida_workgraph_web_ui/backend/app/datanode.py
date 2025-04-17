@@ -11,16 +11,17 @@ async def read_datanode_data(
     labelSearch: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(15, gt=0, le=500),
+    sortField: str = Query("pk", regex="^(pk|ctime|node_type|label)$"),
+    sortOrder: str = Query("desc", regex="^(asc|desc)$"),
 ) -> Dict[str, Any]:
     """
-    Return a slice of Data nodes plus the overall row count
-    so the frontend can paginate on the server.
+    Return a page slice, total row count, and honour server‑side sorting.
     """
     from aiida.orm import QueryBuilder, Data
     from aiida_workgraph_web_ui.backend.app.utils import time_ago
 
     qb = QueryBuilder()
-    filters: dict[str, Any] = {}
+    filters = {}
 
     if typeSearch:
         filters["node_type"] = {"like": f"%{typeSearch}%"}
@@ -33,12 +34,20 @@ async def read_datanode_data(
         project=["id", "uuid", "ctime", "node_type", "label"],
         tag="d",
     )
-    qb.order_by({"d": {"ctime": "desc"}})
 
-    total_rows = qb.count()  # ← number of rows *before* slicing
-    qb.offset(skip).limit(limit)  # ← slice that will be sent to the client
+    # --------‑‑‑ ORDER BY (server‑side sort) ‑‑‑--------- #
+    # map API names to column names
+    column_map = {
+        "pk": "id",
+        "ctime": "ctime",
+        "node_type": "node_type",
+        "label": "label",
+    }
+    qb.order_by({"d": {column_map[sortField]: sortOrder}})
 
-    records = qb.all()
+    total_rows = qb.count()
+    qb.offset(skip).limit(limit)
+
     page = [
         {
             "pk": pk,
@@ -47,7 +56,7 @@ async def read_datanode_data(
             "node_type": node_type,
             "label": label,
         }
-        for pk, uuid, ctime, node_type, label in records
+        for pk, uuid, ctime, node_type, label in qb.all()
     ]
     return {"total": total_rows, "data": page}
 
