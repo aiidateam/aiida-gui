@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiida.manage import manager
-from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
 from aiida_workgraph_web_ui.backend.app.workgraph import router as workgraph_router
+from aiida_workgraph_web_ui.backend.app.process import router as process_router
 from aiida_workgraph_web_ui.backend.app.daemon import router as daemon_router
 from aiida_workgraph_web_ui.backend.app.scheduler import router as scheduler_router
-from aiida_workgraph_web_ui.backend.app.datanode import router as datanode_router
+from aiida_workgraph_web_ui.backend.app.data_node import router as datanode_router
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os
@@ -15,7 +15,6 @@ from fastapi.exception_handlers import http_exception_handler
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from pydantic_settings import BaseSettings
-from aiida.orm import ProcessNode
 
 
 class BackendSettings(BaseSettings):
@@ -48,7 +47,7 @@ async def read_root() -> dict:
 
 
 app.include_router(workgraph_router)
-app.include_router(make_node_router(node_cls=ProcessNode, prefix="process"))
+app.include_router(process_router)
 app.include_router(datanode_router)
 app.include_router(daemon_router)
 app.include_router(scheduler_router)

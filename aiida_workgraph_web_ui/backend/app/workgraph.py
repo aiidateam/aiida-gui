@@ -5,10 +5,20 @@ from typing import List
 from aiida_workgraph.utils import get_parent_workgraphs
 from aiida.orm.utils.serialize import deserialize_unsafe
 import traceback
-from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
+from aiida_workgraph_web_ui.backend.app.node_table import (
+    make_node_router,
+    process_project,
+    projected_data_to_dict_process,
+)
 from aiida_workgraph.orm.workgraph import WorkGraphNode
 
-router = make_node_router(node_cls=WorkGraphNode, prefix="workgraph")
+
+router = make_node_router(
+    node_cls=WorkGraphNode,
+    prefix="workgraph",
+    project=process_project,
+    get_data_func=projected_data_to_dict_process,
+)
 
 
 @router.get("/api/task/{id}/{path:path}")

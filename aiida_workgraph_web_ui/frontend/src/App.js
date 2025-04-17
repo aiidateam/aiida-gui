@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './components/Home';
-import NodeTable from './components/NodeTable'; // ✅ import the generic table
 import DataNodeTable from './components/DataNodeTable';
+import WorkGraphTable from './components/WorkGraphTable';
+import ProcessTable from './components/ProcessTable';
 import WorkGraphItem from './components/WorkGraphItem';
 import DataNodeItem from './components/DataNodeItem';
 import Daemon from './components/Daemon';
@@ -17,26 +18,8 @@ function App() {
       <div className="App">
         <Layout> {/* Wrap the routes with the Layout component */}
           <Routes>
-            <Route
-              path="/workgraph"
-              element={
-                <NodeTable
-                  title="WorkGraph"
-                  endpointBase="http://localhost:8000/api/workgraph"
-                  linkPrefix="/workgraph"
-                />
-              }
-            />
-            <Route
-              path="/process"
-              element={
-                <NodeTable
-                  title="Process"
-                  endpointBase="http://localhost:8000/api/process"
-                  linkPrefix="/process"
-                />
-              }
-            />
+            <Route path="/workgraph" element={<WorkGraphTable />} />
+            <Route path="/process" element={<ProcessTable />} />
             <Route path="/datanode" element={<DataNodeTable />} />
             <Route path="/daemon" element={<Daemon />} />
             <Route path="/scheduler" element={<SchedulerList />} />

@@ -193,10 +193,12 @@ def translate_datagrid_filter_json(raw: str) -> dict:
     field_map = {
         "pk": "id",
         "ctime": "ctime",
+        "node_type": "node_type",
         "process_label": "attributes.process_label",
-        "state": "attributes.process_state",
+        "process_state": "attributes.process_state",
         "exit_status": "attributes.exit_status",
         "exit_message": "attributes.exit_message",
+        "paused": "attributes.paused",
         "label": "label",
         "description": "description",
     }
@@ -229,11 +231,13 @@ def translate_datagrid_filter_json(raw: str) -> dict:
                 {
                     "or": [
                         {"id": int(val)} if val.isdigit() else {},
+                        {"node_type": like},
                         {"attributes.process_label": like},
                         {"attributes.process_state": like},
                         {"attributes.process_status": like},
                         {"attributes.exit_status": like},
                         {"attributes.exit_message": like},
+                        {"attributes.paused": like},
                         {"label": like},
                         {"description": like},
                     ]

@@ -4,10 +4,69 @@ from aiida import orm
 from typing import Type, Dict, List, Union, Optional
 
 
+process_project = [
+    "id",
+    "uuid",
+    "ctime",
+    "node_type",
+    "attributes.process_label",
+    "attributes.process_state",
+    "attributes.process_status",
+    "attributes.exit_status",
+    "attributes.exit_message",
+    "attributes.paused",
+    "label",
+    "description",
+]
+
+
+def projected_data_to_dict_process(qb, project):
+    """
+    Convert the projected data from a QueryBuilder to a list of dictionaries.
+    """
+    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+
+    # Iterate over the results and convert each row to a dictionary
+    results = []
+    for row in qb.all():
+        item = dict(zip(project or [], row))
+        # Add computed/presentational fields
+        item["pk"] = item.pop("id")
+        item["ctime"] = time_ago(item.pop("ctime"))
+        item["process_label"] = item.pop("attributes.process_label")
+        process_state = item.pop("attributes.process_state")
+        item["process_state"] = process_state.title() if process_state else None
+        item["process_status"] = item.pop("attributes.process_status")
+        item["exit_status"] = item.pop("attributes.exit_status")
+        item["exit_message"] = item.pop("attributes.exit_message")
+        item["paused"] = item.pop("attributes.paused")
+        results.append(item)
+    return results
+
+
+def projected_data_to_dict(qb, project):
+    """
+    Convert the projected data from a QueryBuilder to a list of dictionaries.
+    """
+    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+
+    # Iterate over the results and convert each row to a dictionary
+    results = []
+    for row in qb.all():
+        item = dict(zip(project or [], row))
+        # Add computed/presentational fields
+        item["pk"] = item.pop("id")
+        item["ctime"] = time_ago(item.get("ctime"))
+        results.append(item)
+    return results
+
+
 def make_node_router(
     *,  # force kwargs
     node_cls: Type[orm.Node],  # ⬛  WHICH NODE TYPE
     prefix: str,  # ⬛  URL prefix, e.g. "workgraph" → /api/workgraph-data
+    project: Optional[List[str]] = None,
+    get_data_func: callable = projected_data_to_dict,
 ) -> APIRouter:
     """
     Return an APIRouter exposing GET /…-data, PUT /…-data/{id},
@@ -18,7 +77,6 @@ def make_node_router(
     from aiida.engine.processes.control import pause_processes, play_processes
     from aiida.tools import delete_nodes
     from aiida_workgraph_web_ui.backend.app.utils import (
-        time_ago,
         translate_datagrid_filter_json,
     )
 
@@ -40,51 +98,15 @@ def make_node_router(
         qb.append(
             node_cls,
             filters=filters,
-            project=[
-                "id",
-                "uuid",
-                "ctime",
-                "attributes.process_label",
-                "attributes.process_state",
-                "attributes.process_status",
-                "attributes.exit_status",
-                "attributes.exit_message",
-                "label",
-                "description",
-            ],
+            project=project or ["id", "uuid", "ctime", "label", "description"],
             tag="data",
         )
 
-        col_map = {
-            "pk": "id",
-            "ctime": "ctime",
-            "process_label": "attributes.process_label",
-            "state": "attributes.process_state",
-            "status": "attributes.process_status",
-            "exit_status": "attributes.exit_status",
-            "exit_message": "attributes.exit_message",
-            "label": "label",
-            "description": "description",
-        }
-        qb.order_by({"data": {col_map[sortField]: sortOrder}})
+        qb.order_by({"data": {sortField: sortOrder}})
         total = qb.count()
         qb.offset(skip).limit(limit)
 
-        results = [
-            {
-                "pk": pk,
-                "uuid": uuid,
-                "ctime": time_ago(ctime),
-                "process_label": plabel,
-                "state": state.title() if state else None,
-                "status": status,
-                "exit_status": exit_status,
-                "exit_message": exit_message,
-                "label": label,
-                "description": description,
-            }
-            for pk, uuid, ctime, plabel, state, status, exit_status, exit_message, label, description in qb.all()
-        ]
+        results = get_data_func(qb, project)
         return {"total": total, "data": results}
 
     # -------------------- PUT /…-data/{id} --------------------

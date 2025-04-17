@@ -11,6 +11,7 @@ export default function useNodeTable(endpointBase) {
     description: false,
     exit_status: false,
     exit_message: false,
+    paused: false,
   });
 
   const fetchData = useCallback(() => {

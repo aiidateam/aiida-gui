@@ -68,12 +68,15 @@ export default function NodeTable({ title, endpointBase, linkPrefix }) {
       renderCell: p => <Link to={`${linkPrefix}/${p.value}`}>{p.value}</Link> },
     { field: 'ctime', headerName: 'Created', width: 150 },
     { field: 'process_label', headerName: 'Process label', width: 260, sortable: false },
-    { field: 'state',  headerName: 'State',  width: 140, sortable: false },
-    { field: 'status', headerName: 'Status', width: 140, sortable: false },
+    { field: 'process_state',  headerName: 'State',  width: 140, sortable: false },
+    { field: 'process_status', headerName: 'Status', width: 140, sortable: false },
     { field: 'label', headerName: 'Label', width: 220, editable: true },
     { field: 'description', headerName: 'Description', width: 240, editable: true },
     { field: 'exit_status',  headerName: 'Exit status', sortable: false },
     { field: 'exit_message', headerName: 'Exit message', width: 240, sortable: false },
+    { field: 'paused', headerName: 'Paused', width: 100, sortable: false,
+      renderCell: ({ value }) => value ? 'Yes' : 'No',
+    },
     {
       field: 'actions', headerName: 'Actions', width: 160, sortable: false, filterable: false,
       renderCell: p => renderActions(p.row),
@@ -83,23 +86,24 @@ export default function NodeTable({ title, endpointBase, linkPrefix }) {
   /* pause/play/delete action buttons */
   const renderActions = item => {
     const action = url => fetch(url, { method: 'POST' }).then(refetch);
-    if (/(Finished|Failed|Excepted)/.test(item.state))
+    if (/(Finished|Failed|Excepted)/.test(item.process_state))
       return  <Tooltip title="Delete"><IconButton color="error"
                onClick={() => setToDelete({ ...item })}><Delete/></IconButton></Tooltip>;
 
-    if (/(Running|Waiting)/.test(item.state))
+    if (item.paused)
       return <>
-        <Tooltip title="Pause"><IconButton onClick={() => action(`${endpointBase}/pause/${item.pk}`)}><Pause/></IconButton></Tooltip>
+        <Tooltip title="Resume"><IconButton color="success"
+                onClick={() => action(`${endpointBase}/play/${item.pk}`)}><PlayArrow/></IconButton></Tooltip>
         <Tooltip title="Delete"><IconButton color="error"
-                 onClick={() => setToDelete({ ...item })}><Delete/></IconButton></Tooltip>
+                onClick={() => setToDelete({ ...item })}><Delete/></IconButton></Tooltip>
       </>;
 
-    /* paused */
+
+    /* play */
     return <>
-      <Tooltip title="Resume"><IconButton color="success"
-               onClick={() => action(`${endpointBase}/play/${item.pk}`)}><PlayArrow/></IconButton></Tooltip>
+      <Tooltip title="Pause"><IconButton onClick={() => action(`${endpointBase}/pause/${item.pk}`)}><Pause/></IconButton></Tooltip>
       <Tooltip title="Delete"><IconButton color="error"
-               onClick={() => setToDelete({ ...item })}><Delete/></IconButton></Tooltip>
+                onClick={() => setToDelete({ ...item })}><Delete/></IconButton></Tooltip>
     </>;
   };
 
