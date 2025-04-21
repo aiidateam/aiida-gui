@@ -73,7 +73,11 @@ def make_node_router(
     POST pause/play and DELETE with dry‑run for any AiiDA node subclass.
     """
     from aiida.orm import QueryBuilder
-    from aiida.engine.processes.control import pause_processes, play_processes
+    from aiida.engine.processes.control import (
+        pause_processes,
+        play_processes,
+        kill_processes,
+    )
     from aiida.tools import delete_nodes
     from aiida_workgraph_web_ui.backend.app.utils import (
         translate_datagrid_filter_json,
@@ -147,6 +151,14 @@ def make_node_router(
     async def play(id: int):
         try:
             play_processes([orm.load_node(id)])
+            return {"message": f"Resumed {node_cls.__name__} {id}"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.post(f"/api/{prefix}/kill" + "/{id}")
+    async def kill(id: int):
+        try:
+            kill_processes([orm.load_node(id)])
             return {"message": f"Resumed {node_cls.__name__} {id}"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

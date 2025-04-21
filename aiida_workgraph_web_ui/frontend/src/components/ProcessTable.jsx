@@ -1,5 +1,5 @@
 import { IconButton, Tooltip } from '@mui/material';
-import { Pause, PlayArrow } from '@mui/icons-material';
+import { Pause, PlayArrow, HighlightOff } from '@mui/icons-material';
 import NodeTable from './NodeTable';
 
 export const processColumns = linkPrefix => ([
@@ -50,31 +50,41 @@ export const processColumns = linkPrefix => ([
 ]);
 
 /* pause / play buttons – delete is handled generically */
+
 export function extraActions(row, { endpointBase, refetch }) {
-    const post = url => fetch(url, { method:'POST' }).then(refetch);
+  const post = url => fetch(url, { method: 'POST' }).then(refetch);
 
-    if (row.paused)
-      return (
-        <Tooltip title="Resume">
-          <IconButton color="success"
-            onClick={() => post(`${endpointBase}/play/${row.pk}`)}>
-            <PlayArrow/>
-          </IconButton>
-        </Tooltip>
-      );
+  const buttons = [];
 
-    // Only show Pause if the state is Running or Waiting
-    if (['Running', 'Waiting'].includes(row.process_state)) {
-        return (
-        <Tooltip title="Pause">
-            <IconButton onClick={() => post(`${endpointBase}/pause/${row.pk}`)}>
-            <Pause />
-            </IconButton>
-        </Tooltip>
-        );
-    }
-    return null;
+  if (row.paused) {
+    buttons.push(
+      <Tooltip title="Resume" key="resume">
+        <IconButton color="success" onClick={() => post(`${endpointBase}/play/${row.pk}`)}>
+          <PlayArrow />
+        </IconButton>
+      </Tooltip>
+    );
   }
+
+  if (['Running', 'Waiting'].includes(row.process_state)) {
+    buttons.push(
+      <Tooltip title="Pause" key="pause">
+        <IconButton onClick={() => post(`${endpointBase}/pause/${row.pk}`)}>
+          <Pause />
+        </IconButton>
+      </Tooltip>
+    );
+    buttons.push(
+      <Tooltip title="Kill" key="kill">
+        <IconButton color="error" onClick={() => post(`${endpointBase}/kill/${row.pk}`)}>
+          <HighlightOff />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
+  return <>{buttons}</>;
+}
 
 export function ProcessTable() {
     return (
