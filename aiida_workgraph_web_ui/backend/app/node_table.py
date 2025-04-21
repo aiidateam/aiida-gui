@@ -67,6 +67,7 @@ def make_node_router(
     prefix: str,  # ⬛  URL prefix, e.g. "workgraph" → /api/workgraph-data
     project: Optional[List[str]] = None,
     get_data_func: callable = projected_data_to_dict,
+    inclue_delete_route: bool = True,
 ) -> APIRouter:
     """
     Return an APIRouter exposing GET /…-data, PUT /…-data/{id},
@@ -163,21 +164,23 @@ def make_node_router(
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.delete(f"/api/{prefix}/delete" + "/{id}")
-    async def delete(
-        id: int, dry_run: bool = False
-    ) -> Dict[str, Union[bool, str, List[int]]]:
-        try:
-            deleted, ok = delete_nodes([id], dry_run=dry_run)
-            return {
-                "deleted": ok,
-                "message": (
-                    f"{'Deleted' if ok else 'Did not delete'} {node_cls.__name__} {id}"
-                    + (" [dry‑run]" if dry_run else "")
-                ),
-                "deleted_nodes": list(deleted),
-            }
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    if inclue_delete_route:
+
+        @router.delete(f"/api/{prefix}/delete" + "/{id}")
+        async def delete(
+            id: int, dry_run: bool = False
+        ) -> Dict[str, Union[bool, str, List[int]]]:
+            try:
+                deleted, ok = delete_nodes([id], dry_run=dry_run)
+                return {
+                    "deleted": ok,
+                    "message": (
+                        f"{'Deleted' if ok else 'Did not delete'} {node_cls.__name__} {id}"
+                        + (" [dry‑run]" if dry_run else "")
+                    ),
+                    "deleted_nodes": list(deleted),
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
 
     return router

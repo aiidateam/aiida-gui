@@ -94,6 +94,7 @@ export default function SchedulerDetail() {
   const [runningProcessData, setRunningProcessData] = useState([]);
   const [waitingProcessData, setWaitingProcessData] = useState([]);
   const [calcjobData, setCalcjobData] = useState([]);
+  const [workflowData, setWorkflowData] = useState([]);
 
   // New time series for CPU & memory usage
   const [cpuUsageData, setCpuUsageData] = useState([]);
@@ -101,9 +102,11 @@ export default function SchedulerDetail() {
 
   // Inline editing states
   const [maxCalcjobsEdit, setMaxCalcjobsEdit] = useState('');
+  const [maxWorkflowsEdit, setMaxWorkflowsEdit] = useState('');
   const [maxProcessesEdit, setMaxProcessesEdit] = useState('');
   // Dirty flags to prevent overwriting user input while typing
   const [maxCalcjobsDirty, setMaxCalcjobsDirty] = useState(false);
+  const [maxWorkflowsDirty, setMaxWorkflowsDirty] = useState(false);
   const [maxProcessesDirty, setMaxProcessesDirty] = useState(false);
 
   // Refresh interval & chart size
@@ -113,6 +116,7 @@ export default function SchedulerDetail() {
   // Chart references
   const processChartRef = useRef(null);
   const calcjobChartRef = useRef(null);
+  const workflowChartRef = useRef(null);
   const cpuMemChartRef = useRef(null);
 
   // Chart size definitions
@@ -138,6 +142,9 @@ export default function SchedulerDetail() {
         if (!maxCalcjobsDirty) {
           setMaxCalcjobsEdit(data.max_calcjobs);
         }
+        if (!maxWorkflowsDirty) {
+          setMaxWorkflowsEdit(data.max_workflows);
+        }
         if (!maxProcessesDirty) {
           setMaxProcessesEdit(data.max_processes);
         }
@@ -152,6 +159,9 @@ export default function SchedulerDetail() {
         );
         setCalcjobData((prev) =>
           [...prev, { x: currentTime, y: data.running_calcjob_count }].slice(-20)
+        );
+        setWorkflowData((prev) =>
+          [...prev, { x: currentTime, y: data.running_workflow_count }].slice(-20)
         );
       })
       .catch((error) => console.error(error));
@@ -185,13 +195,13 @@ export default function SchedulerDetail() {
     fetchScheduler();
     const interval = setInterval(fetchScheduler, refreshInterval);
     return () => clearInterval(interval);
-  }, [name, refreshInterval, maxCalcjobsDirty, maxProcessesDirty]);
+  }, [name, refreshInterval, maxCalcjobsDirty, maxWorkflowsDirty, , maxProcessesDirty]);
 
   useEffect(() => {
     fetchDaemon();
     const interval = setInterval(fetchDaemon, refreshInterval);
     return () => clearInterval(interval);
-  }, [name, refreshInterval, maxCalcjobsDirty, maxProcessesDirty]);
+  }, [name, refreshInterval, maxCalcjobsDirty, maxWorkflowsDirty, maxProcessesDirty]);
 
 
   /* ------------------------------
@@ -204,6 +214,7 @@ export default function SchedulerDetail() {
       body: JSON.stringify({
         name,
         max_calcjobs: parseInt(maxCalcjobsEdit, 10) || undefined,
+        max_workflows: parseInt(maxWorkflowsEdit, 10) || undefined,
         max_processes: parseInt(maxProcessesEdit, 10) || undefined,
         foreground: false,
       }),
@@ -260,6 +271,27 @@ export default function SchedulerDetail() {
       })
       .catch((error) => toast.error(error.message));
   };
+
+  const updateMaxWorkflows = () => {
+    fetch('http://localhost:8000/api/scheduler/set_max_workflows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        max_workflows: parseInt(maxWorkflowsEdit, 10),
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to update max workflows.');
+        return response.json();
+      })
+      .then((data) => {
+        toast.success('Max workflows updated.');
+        setScheduler(data);
+      })
+      .catch((error) => toast.error(error.message));
+  };
+
 
   const updateMaxProcesses = () => {
     fetch('http://localhost:8000/api/scheduler/set_max_processes', {
@@ -321,7 +353,7 @@ export default function SchedulerDetail() {
     },
   };
 
-  const calcjobChartOptions = {
+  const singleSeriesOptions = {
     responsive: false,
     plugins: {
       zoom: {
@@ -336,12 +368,13 @@ export default function SchedulerDetail() {
       },
       y: {
         type: 'linear',
+        position: 'left',
         beginAtZero: true,
         ticks: {
           stepSize: 1,
           callback: (value) => Math.round(value),
         },
-        title: { display: true, text: 'Running Calcjobs' },
+        title: { display: true, text: 'Count' },
       },
     },
   };
@@ -398,13 +431,13 @@ export default function SchedulerDetail() {
 
   const calcjobChartData = {
     datasets: [
-      {
-        label: 'Running Calcjobs',
-        data: calcjobData,
-        fill: false,
-        borderColor: 'green',
-        tension: 0.1,
-      },
+      { label: 'Running Calcjobs',  data: calcjobData, borderColor: 'green',  fill: false, tension: .1 },
+    ],
+  };
+
+  const workflowChartData = {
+    datasets: [
+      { label: 'Running Workflows', data: workflowData, borderColor: 'purple', fill: false, tension: .1 },
     ],
   };
 
@@ -483,6 +516,10 @@ export default function SchedulerDetail() {
               <strong>Running Calcjobs:</strong> {scheduler.running_calcjob_count}/
               {scheduler.max_calcjobs || 0}
             </p>
+            <p style={{ margin: '6px 0' }}>
+              <strong>Running Workflows:</strong> {scheduler.running_workflow_count}/
+              {scheduler.max_workflows || 0}
+            </p>
           </div>
           <div style={{ flex: 1, minWidth: '250px' }}>
             <p style={{ margin: '6px 0' }}>
@@ -542,6 +579,20 @@ export default function SchedulerDetail() {
             />
           </div>
           <div>
+            <label style={{ marginRight: '8px' }}>Max Workflows:</label>
+            <input
+              type="number"
+              value={maxWorkflowsEdit}
+              onFocus={() => setMaxWorkflowsDirty(true)}
+              onBlur={() => {
+                setMaxWorkflowsDirty(false);
+                updateMaxWorkflows();
+              }}
+              onChange={(e) => setMaxWorkflowsEdit(e.target.value)}
+              style={{ width: '80px', marginRight: '5px' }}
+            />
+          </div>
+          <div>
             <label style={{ marginRight: '8px' }}>Max Processes:</label>
             <input
               type="number"
@@ -592,6 +643,42 @@ export default function SchedulerDetail() {
           marginBottom: '30px',
         }}
       >
+        {/* Calcjob Chart Section */}
+        <div
+          style={{
+            flex: `0 0 ${chartFlexWidth}px`,
+            boxSizing: 'border-box',
+          }}
+        >
+          <h4>Running Calcjobs</h4>
+          <Line
+            key={`calcjob-chart-${chartSize}`}
+            ref={calcjobChartRef}
+            data={calcjobChartData}
+            options={singleSeriesOptions}
+            width={chartWidth}
+            height={chartHeight}
+          />
+        </div>
+
+        {/* Calcjob Chart Section */}
+        <div
+          style={{
+            flex: `0 0 ${chartFlexWidth}px`,
+            boxSizing: 'border-box',
+          }}
+        >
+          <h4>Running Workflows</h4>
+          <Line
+            key={`workflow-chart-${chartSize}`}
+            ref={workflowChartRef}
+            data={workflowChartData}
+            options={singleSeriesOptions}
+            width={chartWidth}
+            height={chartHeight}
+          />
+        </div>
+
         {/* Process Chart Section */}
         <div
           style={{
@@ -605,24 +692,6 @@ export default function SchedulerDetail() {
             ref={processChartRef}
             data={processChartData}
             options={processChartOptions}
-            width={chartWidth}
-            height={chartHeight}
-          />
-        </div>
-
-        {/* Calcjob Chart Section */}
-        <div
-          style={{
-            flex: `0 0 ${chartFlexWidth}px`,
-            boxSizing: 'border-box',
-          }}
-        >
-          <h4>Running Calcjobs</h4>
-          <Line
-            key={`calcjob-chart-${chartSize}`}
-            ref={calcjobChartRef}
-            data={calcjobChartData}
-            options={calcjobChartOptions}
             width={chartWidth}
             height={chartHeight}
           />
@@ -650,7 +719,8 @@ export default function SchedulerDetail() {
       <NodeTable
         title=""
         endpointBase={`http://localhost:8000/api/scheduler/${name}/process`}
-        linkPrefix="/process"           /* click through to the underlying node */
+        linkPrefix="/process"
+        actionBase={`http://localhost:8000/api/process`}
         config={{
           columns       : processColumns,
           buildExtraActions: extraActions,

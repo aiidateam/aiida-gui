@@ -227,11 +227,10 @@ function SchedulerList() {
           <tr>
             <th>Name</th>
             <th>Status</th>
-            <th>Waiting</th>
-            <th>Running Procs</th>
+            <th>Waiting Processes</th>
+            <th>Running Processes</th>
             <th>Running Calcjobs</th>
-            <th>Max Calcjobs</th>
-            <th>Max Processes</th>
+            <th>Running Workflows</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -248,10 +247,9 @@ function SchedulerList() {
                 {scheduler.running ? 'Running' : 'Stopped'}
               </td>
               <td>{scheduler.waiting_process_count}</td>
-              <td>{scheduler.running_process_count}</td>
-              <td>{scheduler.running_calcjob_count}</td>
-              <td>{scheduler.max_calcjobs}</td>
-              <td>{scheduler.max_processes}</td>
+              <td>{`${scheduler.running_process_count}/${scheduler.max_processes ?? 0}`}</td>
+              <td>{`${scheduler.running_calcjob_count}/${scheduler.max_calcjobs ?? 0}`}</td>
+              <td>{`${scheduler.running_workflow_count}/${scheduler.max_workflows ?? 0}`}</td>
               <td>
                 {scheduler.running ? (
                   <button

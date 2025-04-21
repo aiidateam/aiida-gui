@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 from fastapi import HTTPException, Query
 from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
 from aiida import orm
+import traceback
 
 project = ["id", "uuid", "time", "label", "description"]
 
@@ -48,6 +49,7 @@ router = make_node_router(
     prefix="groupnode",
     project=project,
     get_data_func=projected_data_to_dict_group,
+    inclue_delete_route=False,
 )
 
 
@@ -111,3 +113,36 @@ async def read_group_members(
 
     results = projected_data_to_dict(qb, project)
     return {"total": total, "data": results}
+
+
+@router.delete("/api/groupnode/delete" + "/{id}")
+async def delete(
+    id: int, dry_run: bool = False, delete_nodes: bool = False
+) -> Dict[str, Union[bool, str, List[int]]]:
+    from aiida.tools import delete_group_nodes
+
+    try:
+        if dry_run:
+            return {
+                "deleted_nodes": [id],
+            }
+        if delete_nodes:
+            _, nodes_deleted = delete_group_nodes([id], dry_run=dry_run)
+            if nodes_deleted:
+                orm.Group.collection.delete(id)
+                ok = True
+            else:
+                ok = False
+        else:
+            orm.Group.collection.delete(id)
+            ok = True
+        return {
+            "deleted": ok,
+            "message": (
+                f"{'Deleted' if ok else 'Did not delete'} {orm.Group.__name__} {id}"
+            ),
+        }
+    except Exception as e:
+        error_traceback = traceback.format_exc()  # Capture the full traceback
+        print(error_traceback)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,4 @@
-// pages/DataNodeTable.jsx
+// GroupNodeTable.js
 import { IconButton, Tooltip } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import NodeTable from '../components/NodeTable';
@@ -11,11 +11,6 @@ const groupColumns = linkPrefix => ([
   { field:'description',headerName:'Description', width:250, editable:true },
 ]);
 
-const groupActions = (row, { endpointBase, refetch }) => (
-  <Tooltip title="Delete"><IconButton color="error"
-    onClick={() => fetch(`${endpointBase}/delete/${row.pk}`, { method:'DELETE' })
-                    .then(refetch)}><Delete/></IconButton></Tooltip>
-);
 
 export default () =>
   <NodeTable
@@ -24,7 +19,7 @@ export default () =>
     linkPrefix="/groupnode"
     config={{
       columns       : groupColumns,
-      buildActions  : groupActions,
       editableFields: ['label', 'description'],
+      includeDeleteGroupNodesOption: true,
     }}
   />;
