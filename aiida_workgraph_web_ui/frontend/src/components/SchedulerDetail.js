@@ -21,6 +21,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import NodeTable from './NodeTable';                       // the generic table
 import { extraActions } from './ProcessTable'; // the generic table
+import { Link } from 'react-router-dom';
 
 ChartJS.register(
   CategoryScale,
@@ -36,8 +37,23 @@ ChartJS.register(
 
 
 export const processColumns = linkPrefix => ([
-  { field:'pk', headerName:'PK', width:90,
-    renderCell:p => <a href={`${linkPrefix}/${p.value}`}>{p.value}</a> },
+  {
+    field: 'pk',
+    headerName: 'PK',
+    width: 120,
+    renderCell: ({ row, value }) => {
+      const typeKey = row.node_type.toLowerCase();
+
+      let prefix = '/process';
+      if (typeKey.endsWith('workgraphnode.')) {
+        prefix = '/workgraph';
+      } else if (typeKey.endsWith('workchainnode.')) {
+        prefix = '/workchain';
+      }
+
+      return <Link to={`${prefix}/${value}`}>{value}</Link>;
+    }
+  },
   { field:'ctime', headerName:'Created',     width:150 },
   { field:'process_label', headerName:'Process label', width:260, sortable:false },
   {

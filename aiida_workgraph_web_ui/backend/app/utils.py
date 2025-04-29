@@ -110,7 +110,7 @@ def get_workchain_data(node: Node) -> dict:
         )
         for link in links_input:
             input_node_links_create = link.node.base.links.get_incoming(
-                link_type=(LinkType.CREATE)
+                link_type=(LinkType.CREATE, LinkType.RETURN)
             )
             for link_create in input_node_links_create:
                 if link_create.node in nodes_called:

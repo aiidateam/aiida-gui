@@ -14,11 +14,22 @@ const memberColumns = () => ([
     headerName: 'PK',
     width: 120,
     renderCell: ({ row, value }) => {
-      // choose link based on node_type prefix
       const typeKey = row.node_type.toLowerCase();
-      const prefix = typeKey.startsWith('data')
-        ? '/datanode'
-        : '/process';
+      let prefix = '';
+
+      if (typeKey.startsWith('data')) {
+        prefix = '/datanode';
+      } else {
+        // process node, refine based on the suffix
+        if (typeKey.endsWith('workgraphnode.')) {
+          prefix = '/workgraph';
+        } else if (typeKey.endsWith('workchainnode.')) {
+          prefix = '/workchain';
+        } else {
+          prefix = '/process';
+        }
+      }
+
       return <Link to={`${prefix}/${value}`}>{value}</Link>;
     }
   },
