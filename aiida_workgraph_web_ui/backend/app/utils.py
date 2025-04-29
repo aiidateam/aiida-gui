@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, Optional, Union, Tuple, List, Any
 from aiida.orm import load_node, Node
 from datetime import datetime
@@ -32,11 +34,11 @@ def get_node_recursive(links: Dict) -> Dict[str, Union[List[int], str]]:
         if isinstance(value, Mapping):
             data.update({label: get_node_recursive(value)})
         else:
-            data[label] = [value.pk, value.__class__.__name__]
+            data[label] = [value.pk, value.__class__.__name__, value.node_type]
     return data
 
 
-def get_node_inputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_node_inputs(pk: int) -> Union[str, Dict[str, Union[List[int], str]]]:
     from aiida.common.links import LinkType
 
     if pk is None:
@@ -52,6 +54,40 @@ def get_node_inputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int], 
         result = {}
 
     return result
+
+
+def get_nodes_called(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+    from aiida.common.links import LinkType
+
+    node = load_node(pk) if isinstance(pk, int) else pk
+    links_called = node.base.links.get_outgoing(
+        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
+    )
+    nodes_called = {}
+    for link in links_called:
+        nodes_called[link.link_label] = [
+            link.node.pk,
+            link.node.__class__.__name__,
+            link.node.node_type,
+        ]
+    return nodes_called
+
+
+def get_nodes_caller(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+    from aiida.common.links import LinkType
+
+    node = load_node(pk) if isinstance(pk, int) else pk
+    links_caller = node.base.links.get_incoming(
+        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
+    )
+    nodes_caller = {}
+    for link in links_caller:
+        nodes_caller[link.link_label] = [
+            link.node.pk,
+            link.node.__class__.__name__,
+            link.node.node_type,
+        ]
+    return nodes_caller
 
 
 def get_node_outputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int], str]]]:

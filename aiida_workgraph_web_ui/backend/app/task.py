@@ -15,6 +15,8 @@ async def read_task(id: int, path: str):
     from aiida.orm import load_node
     from aiida_workgraph.orm.workgraph import WorkGraphNode
 
+    # import inspect
+
     try:
         node = load_node(id)
         segments = path.split("/")
@@ -57,13 +59,19 @@ async def read_task(id: int, path: str):
             # metadata["name"] = segments[0].split("_")[0]
             # metadata["node_type"] = node.node_type
             # metadata["identifier"] = "any"
+            # try:
+            #     executor = inspect.getsource(task_node.process_class)
+            # except Exception:
+            #     executor = f"{task_node.process_class.__module__}.{task_node.process_class.__name__}"
+            executor = f"{task_node.process_class.__module__}.{task_node.process_class.__name__}"
+
             content = {
                 "node_type": task_node.node_type,
                 "label": segments[0].split("_")[0],
                 "metadata": get_node_summary(task_node),
                 "inputs": get_node_inputs(pk),
                 "outputs": get_node_outputs(pk),
-                "executor": "",
+                "executor": executor,
                 "process": {"pk": pk},
             }
         else:

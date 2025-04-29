@@ -6,7 +6,13 @@ from aiida_workgraph_web_ui.backend.app.node_table import (
 import traceback
 from fastapi import HTTPException
 from aiida import orm
-from .utils import get_node_summary, get_node_inputs, get_node_outputs
+from .utils import (
+    get_node_summary,
+    get_node_inputs,
+    get_node_outputs,
+    get_nodes_called,
+    get_nodes_caller,
+)
 
 router = make_node_router(
     node_cls=orm.ProcessNode,
@@ -27,8 +33,9 @@ async def read_process(id: int):
         "table": get_node_summary(node),
         "inputs": get_node_inputs(id),
         "outputs": get_node_outputs(id),
+        "called": get_nodes_called(id),
+        "caller": get_nodes_caller(id),
     }
-    print(data)
     return data
 
 

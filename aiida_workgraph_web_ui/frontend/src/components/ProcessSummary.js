@@ -67,13 +67,27 @@ function ProcessSummary({ summary }) {
   const renderInputs = (inputs, depth = 0) => {
     return Object.entries(inputs).map(([key, value]) => {
       const nodeId = Array.isArray(value) ? value[0] : value;
-      const nodeType = Array.isArray(value) ? value[1] : null;
+      const nodeType = Array.isArray(value) ? value[2] : null;
+
+      let prefix = '/datanode'; // default
+
+      if (nodeType) {
+        if (nodeType.startsWith('data')) {
+          prefix = '/datanode';
+        } else if (nodeType.endsWith('WorkGraphNode.')) {
+          prefix = '/workgraph';
+        } else if (nodeType.endsWith('WorkChainNode.')) {
+          prefix = '/workchain';
+        } else {
+          prefix = '/process';
+        }
+      }
 
       if (Array.isArray(value)) {
         return (
           <li key={key}>
             <span >
-              {key}: <a href={`/datanode/${nodeId}`}>{nodeId}</a>
+              {key}: <a href={`${prefix}/${nodeId}`}>{nodeId}</a>
             </span>
           </li>
         );
@@ -118,6 +132,22 @@ function ProcessSummary({ summary }) {
       <TaskDetailsTable>
         <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
           {renderInputs(summary.outputs)}
+        </ul>
+      </TaskDetailsTable>
+      <div>
+        <TaskDetailsTitle>Caller Processes:</TaskDetailsTitle>
+      </div>
+      <TaskDetailsTable>
+        <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
+          {renderInputs(summary.caller)}
+        </ul>
+      </TaskDetailsTable>
+      <div>
+        <TaskDetailsTitle>Called Processes:</TaskDetailsTitle>
+      </div>
+      <TaskDetailsTable>
+        <ul style={{ margin: 10, padding: 5, textAlign: 'left' }}>
+          {renderInputs(summary.called)}
         </ul>
       </TaskDetailsTable>
     </div>

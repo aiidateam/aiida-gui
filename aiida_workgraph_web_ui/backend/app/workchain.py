@@ -25,6 +25,8 @@ async def read_workchain(id: int):
         get_node_summary,
         get_node_inputs,
         get_node_outputs,
+        get_nodes_called,
+        get_nodes_caller,
         get_workchain_data,
     )
 
@@ -40,6 +42,8 @@ async def read_workchain(id: int):
             "table": get_node_summary(node),
             "inputs": get_node_inputs(id),
             "outputs": get_node_outputs(id),
+            "called": get_nodes_called(id),
+            "caller": get_nodes_caller(id),
         }
 
         parent_workchains = get_parent_processes(id)

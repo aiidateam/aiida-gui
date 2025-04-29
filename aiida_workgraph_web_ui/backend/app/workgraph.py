@@ -13,6 +13,8 @@ from .utils import (
     get_node_summary,
     get_node_inputs,
     get_node_outputs,
+    get_nodes_called,
+    get_nodes_caller,
     get_parent_processes,
 )
 
@@ -110,6 +112,8 @@ async def read_workgraph(id: int):
             "table": get_node_summary(node),
             "inputs": get_node_inputs(id),
             "outputs": get_node_outputs(id),
+            "called": get_nodes_called(id),
+            "caller": get_nodes_caller(id),
         }
 
         parent_workgraphs = get_parent_processes(id)
