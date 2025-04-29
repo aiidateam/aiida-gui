@@ -73,6 +73,63 @@ def get_node_outputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int],
     return result
 
 
+def get_workchain_data(node: Node) -> dict:
+    from aiida.common.links import LinkType
+
+    graph_data = {
+        "name": node.process_label,
+        "uuid": node.uuid,
+        "state": node.process_state,
+        "nodes": {},
+        "links": [],
+    }
+
+    links_called = node.base.links.get_outgoing(
+        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
+    )
+    links_input = node.base.links.get_incoming(
+        link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
+    )
+    nodes_called = []
+    for link in links_called:
+        graph_data["nodes"][link.node.pk] = {
+            "label": f"{link.link_label}-{link.node.pk}",
+            "node_type": link.node.node_type,
+            "pk": link.node.pk,
+            "processPk": link.node.pk,
+            "inputs": [],
+            "properties": [],
+            "outputs": [],
+            "position": [0, 0],
+            "children": [],
+        }
+        nodes_called.append(link.node)
+    for node in nodes_called:
+        links_input = node.base.links.get_incoming(
+            link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
+        )
+        for link in links_input:
+            input_node_links_create = link.node.base.links.get_incoming(
+                link_type=(LinkType.CREATE)
+            )
+            for link_create in input_node_links_create:
+                if link_create.node in nodes_called:
+                    graph_data["links"].append(
+                        {
+                            "from_node": link_create.node.pk,
+                            "to_node": node.pk,
+                            "from_socket": link_create.link_label,
+                            "to_socket": link.link_label,
+                        }
+                    )
+                    input = {"name": link.link_label, "identifier": "any"}
+                    output = {"name": link_create.link_label, "identifier": "any"}
+                    graph_data["nodes"][node.pk]["inputs"].append(input)
+                    graph_data["nodes"][link_create.node.pk]["outputs"].append(output)
+
+    return graph_data
+
+
 def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, Any]:
     """Export a node to a rete js node."""
     from aiida_workgraph.utils import get_processes_latest
@@ -233,3 +290,21 @@ def translate_datagrid_filter_json(raw: str, project) -> dict:
             blocks.append({"or": block})
         filters = {"and": [filters, *blocks]} if filters else {"and": blocks}
     return filters
+
+
+def get_parent_processes(pk: int) -> List[Dict[str, Union[str, int]]]:
+    """Get the list of parent processes.
+    Use aiida incoming links to find the parent processes.
+    the parent process is the process that has a link (type CALL_WORK) to the current process.
+    """
+    from aiida import orm
+    from aiida.common.links import LinkType
+
+    node = orm.load_node(pk)
+    parent_processes = [
+        {"label": node.process_label, "pk": node.pk, "node_type": node.node_type}
+    ]
+    links = node.base.links.get_incoming(link_type=LinkType.CALL_WORK).all()
+    if len(links) > 0:
+        parent_processes.extend(get_parent_processes(links[0].node.pk))
+    return parent_processes

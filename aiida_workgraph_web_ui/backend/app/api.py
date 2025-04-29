@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiida.manage import manager
 from aiida_workgraph_web_ui.backend.app.workgraph import router as workgraph_router
+from aiida_workgraph_web_ui.backend.app.workchain import router as workchain_router
+from aiida_workgraph_web_ui.backend.app.task import router as task_router
 from aiida_workgraph_web_ui.backend.app.process_node import router as process_router
 from aiida_workgraph_web_ui.backend.app.daemon import router as daemon_router
 from aiida_workgraph_web_ui.backend.app.scheduler import router as scheduler_router
@@ -48,6 +50,8 @@ async def read_root() -> dict:
 
 
 app.include_router(workgraph_router)
+app.include_router(workchain_router)
+app.include_router(task_router)
 app.include_router(process_router)
 app.include_router(datanode_router)
 app.include_router(groupnode_router)

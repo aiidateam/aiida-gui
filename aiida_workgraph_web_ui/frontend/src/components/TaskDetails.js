@@ -151,6 +151,14 @@ function TaskDetails({
       }
       // else disabled, do nothing
     }
+    else if (nodeType.includes('WORKCHAIN')) {
+      console.log("WORKCHAIN nodeType: ", nodeType);
+      console.log("processPk: ", processPk)
+      if (processPk) {
+        navigate(`/workchain/${processPk}`);
+      }
+    }
+
   };
 
   /**
@@ -206,6 +214,11 @@ function TaskDetails({
       {['GRAPH_BUILDER', 'WORKGRAPH', 'MAP'].includes(nodeType) && (
         <WorkGraphButton onClick={handleWorkGraphClick} disabled={isButtonDisabled}>
           Go to WorkGraph
+        </WorkGraphButton>
+      )}
+      {nodeType.includes('WORKCHAIN') && (
+        <WorkGraphButton onClick={handleWorkGraphClick} disabled={isButtonDisabled}>
+          Go to WorkChain
         </WorkGraphButton>
       )}
 

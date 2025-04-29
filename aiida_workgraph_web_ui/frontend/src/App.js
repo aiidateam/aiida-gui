@@ -6,6 +6,7 @@ import GroupNodeDetail from './components/GroupNodeDetail';
 import { ProcessTable, WorkGraphTable } from './components/ProcessTable';
 import ProcessNodeDetail from './components/ProcessItem';
 import WorkGraphItem from './components/WorkGraphItem';
+import WorkChainItem from './components/WorkChainItem';
 import DataNodeItem from './components/DataNodeItem';
 import Daemon from './components/Daemon';
 import SchedulerList from './components/SchedulerList';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/scheduler/:name" element={<SchedulerDetail />} />
             <Route path="/" element={<Home />} />
             <Route path="/workgraph/:pk/*" element={<WorkGraphItem />} />
+            <Route path="/workchain/:pk/*" element={<WorkChainItem />} />
             <Route path="/datanode" element={<DataNodeTable />} />
             <Route path="/datanode/:pk" element={<DataNodeItem />} />
             <Route path="/groupnode" element={<GroupNodeTable />} />

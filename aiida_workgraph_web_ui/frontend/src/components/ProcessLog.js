@@ -1,9 +1,9 @@
-// WorkGraphLog.js
+// ProcessLog.js
 import styled from "styled-components";
 import { useEffect, useState } from "react";
 
 
-export const WorkGraphLogStyle = styled.div`
+export const ProcessLogStyle = styled.div`
   .log-section {
   border: 1px solid #ddd;
   padding: 1em;
@@ -25,7 +25,7 @@ export const WorkGraphLogStyle = styled.div`
 }
 `;
 
-function WorkGraphLog({ id }) {
+function ProcessLog({ id }) {
   const [fetchedLogs, setFetchedLogs] = useState([]);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ function WorkGraphLog({ id }) {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/workgraph-logs/${id}`);
+      const response = await fetch(`http://localhost:8000/api/process-logs/${id}`);
       const data = await response.json();
       setFetchedLogs(data);
     } catch (error) {
@@ -51,7 +51,7 @@ function WorkGraphLog({ id }) {
   };
 
   return (
-    <WorkGraphLogStyle>
+    <ProcessLogStyle>
       <div className="log-section">
         <h3>Log Information</h3>
         <div className="log-content">
@@ -60,8 +60,8 @@ function WorkGraphLog({ id }) {
           ))}
         </div>
       </div>
-    </WorkGraphLogStyle>
+    </ProcessLogStyle>
   );
 }
 
-export default WorkGraphLog;
+export default ProcessLog;

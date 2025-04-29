@@ -27,21 +27,29 @@ const Separator = styled.span`
   color: #ccc;
 `;
 
-function Breadcrumbs({ parentWorkGraphs }) {
+function Breadcrumbs({ parentProcesses }) {
   // If empty or undefined, show nothing
-  if (!parentWorkGraphs || parentWorkGraphs.length === 0) {
+  if (!parentProcesses || parentProcesses.length === 0) {
     return null;
   }
 
   let pathSoFar = ''; // We'll build up the path as we go
   const crumbs = [];
 
-  for (const item of parentWorkGraphs) {
-    if (Array.isArray(item)) {
-      // item is [label, pk]
-      const [label, pk] = item;
-      // Reset the path to /workgraph/{pk}
-      pathSoFar = `/workgraph/${pk}`;
+  for (const item of parentProcesses) {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      // item is an object: { label, pk, node_type }
+      const { label, pk, node_type } = item;
+      const typeKey = node_type.toLowerCase();
+
+      if (typeKey.endsWith('workgraphnode.')) {
+        pathSoFar = `/workgraph/${pk}`;
+      } else if (typeKey.endsWith('workchainnode.')) {
+        pathSoFar = `/workchain/${pk}`;
+      } else {
+        pathSoFar = `/process/${pk}`;
+      }
+
       crumbs.push({ label, url: pathSoFar });
     } else if (typeof item === 'string') {
       // item is a plain string (node name, etc.)
@@ -49,7 +57,6 @@ function Breadcrumbs({ parentWorkGraphs }) {
         // If pathSoFar is empty, we can't append. Maybe skip or handle error.
         continue;
       }
-      // Append the node name (item) to the path
       pathSoFar += `/${item}`;
       crumbs.push({ label: item, url: pathSoFar });
     }

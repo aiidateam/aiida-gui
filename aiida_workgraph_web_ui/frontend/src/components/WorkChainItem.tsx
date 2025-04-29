@@ -32,7 +32,7 @@ declare global {
 /* Modify the useRete function to support passing workgraph data to createEditor */
 export function useRete<T extends { destroy(): void }>(
   create: (el: HTMLElement, data: any) => Promise<T>,
-  workgraphData: any
+  workchainData: any
 ) {
   const [container, setContainer] = useState<null | HTMLElement>(null);
   const editorRef = useRef<T>();
@@ -45,13 +45,13 @@ export function useRete<T extends { destroy(): void }>(
         editorRef.current.destroy();
         container.innerHTML = '';
       }
-      create(container, workgraphData).then((value) => {
+      create(container, workchainData).then((value) => {
         editorRef.current = value;
         setEditor(value);
         window.editor = value;
       });
     }
-  }, [container, create, workgraphData]); // Add workgraphData as a dependency
+  }, [container, create, workchainData]); // Add workchainData as a dependency
 
   useEffect(() => {
     return () => {
@@ -72,26 +72,26 @@ export function useRete<T extends { destroy(): void }>(
 
 
 
-function WorkGraph() {
+function WorkChain() {
   const { pk } = useParams();
   const location = useLocation();
 
-  const [workgraphData, setWorkGraphData] = useState({ summary: {}, nodes: {}, links: [], pk: [] });
-  const [ref, editor] = useRete(createEditor, workgraphData);
+  const [workchainData, setWorkChainData] = useState({ summary: {}, nodes: {}, links: [], pk: [] });
+  const [ref, editor] = useRete(createEditor, workchainData);
   const [selectedNode, setSelectedNode] = useState({ metadata: [], executor: '' });
   const [showTaskDetails, setShowTaskDetails] = useState(false);
-  const [workgraphHierarchy, setWorkGraphHierarchy] = useState([]);
+  const [workchainHierarchy, setWorkChainHierarchy] = useState([]);
   const [selectedView, setSelectedView] = useState('Editor');
   const [realtimeSwitch, setRealtimeSwitch] = useState(false); // State to manage the realtime switch
   const [detailNodeViewSwitch, setDetailNodeViewSwitch] = useState(false); // State to manage the realtime switch
 
-  // This is the base path: /workgraph/45082/
-  const basePath = `/workgraph/${pk}/`;
+  // This is the base path: /process/45082/
+  const basePath = `/process/${pk}/`;
 
   // subPath will be everything after that basePath in the URL.
-  // e.g. if user visits /workgraph/45082/sub_wg, subPath = "sub_wg"
-  // if user visits /workgraph/45082/sub_wg/abc, subPath = "sub_wg/abc"
-  // if user visits just /workgraph/45082, subPath = ""
+  // e.g. if user visits /process/45082/sub_wg, subPath = "sub_wg"
+  // if user visits /process/45082/sub_wg/abc, subPath = "sub_wg/abc"
+  // if user visits just /process/45082, subPath = ""
   const subPath = location.pathname.startsWith(basePath)
     ? location.pathname.slice(basePath.length)
     : "";
@@ -99,7 +99,7 @@ function WorkGraph() {
   // Fetch state data from the backend
   const fetchStateData = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/workgraph-state/${pk}`);
+      const response = await fetch(`http://localhost:8000/api/workchain-state/${pk}`);
       if (!response.ok) {
         throw new Error('Failed to fetch state data');
       }
@@ -118,12 +118,13 @@ function WorkGraph() {
       const nodes = nodeEditor.getNodes();
       // Find all elements with data-testid="node"
       const nodeElements = document.querySelectorAll('[data-testid="node"]');
+      console.log("stateData: ", stateData)
       // Iterate through the elements and update title colors based on state
       nodeElements.forEach((nodeElement) => {
         const titleElement = nodeElement.querySelector('[data-testid="title"]')  as HTMLElement;
         const nodeName = titleElement.textContent;
         if (nodeName && nodeName in stateData) {
-          const nodeState = stateData[nodeName].state;
+            const nodeState = stateData[nodeName].state.toUpperCase();
             if (nodeState === 'FINISHED') {
               titleElement.style.background = 'green';
             } else if (nodeState === 'RUNNING') {
@@ -170,11 +171,11 @@ function WorkGraph() {
     if (editor) {
       if (detailNodeViewSwitch) {
         console.log('Adding controls');
-        addControls(editor.editor, editor.area, workgraphData);
+        addControls(editor.editor, editor.area, workchainData);
       }
       else {
         console.log('Removing controls');
-        removeControls(editor.editor, editor.area, workgraphData);
+        removeControls(editor.editor, editor.area, workchainData);
       }
       // need to call layout to update the view
       editor?.layout(true);
@@ -188,16 +189,16 @@ function WorkGraph() {
   useEffect(() => {
     let url;
     if (subPath) {
-      url = `http://localhost:8000/api/workgraph/${pk}/${subPath}`;
+      url = `http://localhost:8000/api/workchain/${pk}/${subPath}`;
     } else {
-      url = `http://localhost:8000/api/workgraph/${pk}`;
+      url = `http://localhost:8000/api/workchain/${pk}`;
     }
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        setWorkGraphData(data);
+        setWorkChainData(data);
         // Set the workgraph hierarchy here based on your data
-        setWorkGraphHierarchy(data.parent_workgraphs);
+        setWorkChainHierarchy(data.parent_workchains);
       })
       .catch((error) => console.error('Error fetching data:', error));
   }, [pk, subPath]); // Only re-run when `pk` changes
@@ -220,6 +221,7 @@ function WorkGraph() {
             } else {
               url = `http://localhost:8000/api/task/${pk}/${node.label}`;
             }
+            console.log('Fetching data from:', url);
             const response = await fetch(url);
             if (!response.ok) {
               const errorText = await response.text(); // Read the error response
@@ -258,7 +260,7 @@ function WorkGraph() {
   // Memoize the editor to prevent re-creation
   const editorComponent = useMemo(() => (
       <div ref={ref} style={{ height: 'calc(100% - 2em)', width: '100%' }}></div>
-  ), [workgraphHierarchy, editor, showTaskDetails, selectedNode]); // Specify dependencies
+  ), [workchainHierarchy, editor, showTaskDetails, selectedNode]); // Specify dependencies
 
 
   const handleTaskAction = async (action: string) => {
@@ -284,7 +286,6 @@ function WorkGraph() {
               // If response not OK, throw the backend message
               throw new Error(data.detail || `Failed to perform ${action}`);
             }
-
             console.log(data.message); // Display backend response message
             toast.success(`${action} action performed successfully on nodes.`);
         } catch (error: any) {
@@ -308,11 +309,12 @@ function WorkGraph() {
           <Button onClick={() => setSelectedView('Log')}>Log</Button>
           <Button onClick={() => setSelectedView('Time')}>Time</Button>
         </TopMenu>
-          {selectedView === 'Summary' && <ProcessSummary summary={workgraphData.summary} />}
+          <ToastContainer />
+          {selectedView === 'Summary' && <ProcessSummary summary={workchainData.summary} />}
           {selectedView === 'Log' && <ProcessLog id={pk} />}
           {selectedView === 'Time' && <NodeDurationGraph id={pk}/>}
           <EditorWrapper visible={selectedView === 'Editor'}>
-          <WorkGraphIndicator parentProcesses={workgraphHierarchy} />
+          <WorkGraphIndicator parentProcesses={workchainHierarchy} />
             <EditorContainer>
               <LayoutAction>
               <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -334,7 +336,6 @@ function WorkGraph() {
                 </div>
               </div>
               <div>
-                <ToastContainer />
                 <Button onClick={() => editor?.layout(true)}>Arrange</Button>
                 <Button onClick={handlePause}>Pause</Button>
                 <Button onClick={handlePlay}>Play</Button>
@@ -356,4 +357,4 @@ function WorkGraph() {
   );
 }
 
-export default WorkGraph;
+export default WorkChain;

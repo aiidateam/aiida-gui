@@ -1,4 +1,4 @@
-// WorkGraphSummary.js
+// ProcessSummary.js
 import styled from "styled-components";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Correct import for 'dark' style
@@ -62,7 +62,7 @@ export const WorkGraphInfoStyle = styled.div`
   background-color: #f7f7f7; /* Light gray background for better readability */
 `;
 
-function WorkGraphSummary({ summary }) {
+function ProcessSummary({ summary }) {
 
   const renderInputs = (inputs, depth = 0) => {
     return Object.entries(inputs).map(([key, value]) => {
@@ -125,4 +125,4 @@ function WorkGraphSummary({ summary }) {
   );
 }
 
-export default WorkGraphSummary;
+export default ProcessSummary;

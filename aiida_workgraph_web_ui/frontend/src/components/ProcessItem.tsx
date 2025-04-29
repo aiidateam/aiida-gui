@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from 'antd';
 import { PageContainer, TopMenu } from './WorkGraphItemStyles';
-import WorkGraphSummary from './WorkGraphSummary';
-import WorkGraphLog from './WorkGraphLog';
+import ProcessSummary from './ProcessSummary';
+import ProcessLog from './ProcessLog';
 
 export default function Process() {
   const { pk } = useParams();
@@ -24,8 +24,8 @@ export default function Process() {
         <Button onClick={() => setView('Log')}>Log</Button>
       </TopMenu>
 
-      {view === 'Summary' && summary && <WorkGraphSummary summary={summary} />}
-      {view === 'Log'      && <WorkGraphLog id={pk} />}
+      {view === 'Summary' && summary && <ProcessSummary summary={summary} />}
+      {view === 'Log'      && <ProcessLog id={pk} />}
     </PageContainer>
   );
 }
