@@ -21,14 +21,7 @@ router = make_node_router(
 
 @router.get("/api/workchain/{id}")
 async def read_workchain(id: int):
-    from .utils import (
-        get_node_summary,
-        get_node_inputs,
-        get_node_outputs,
-        get_nodes_called,
-        get_nodes_caller,
-        get_workchain_data,
-    )
+    from .utils import get_node_summary, get_workchain_data
 
     try:
 
@@ -38,14 +31,7 @@ async def read_workchain(id: int):
         if content is None:
             print("No workchain data found in the node.")
             return
-        summary = {
-            "table": get_node_summary(node),
-            "inputs": get_node_inputs(id),
-            "outputs": get_node_outputs(id),
-            "called": get_nodes_called(id),
-            "caller": get_nodes_caller(id),
-        }
-
+        summary = get_node_summary(node)
         parent_workchains = get_parent_processes(id)
         parent_workchains.reverse()
         content["summary"] = summary

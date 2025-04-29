@@ -38,13 +38,13 @@ def get_node_recursive(links: Dict) -> Dict[str, Union[List[int], str]]:
     return data
 
 
-def get_node_inputs(pk: int) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_node_inputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
     from aiida.common.links import LinkType
 
     if pk is None:
         return {}
 
-    node = load_node(pk)
+    node = load_node(pk) if isinstance(pk, int) else pk
     nodes_input = node.base.links.get_incoming(
         link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
     )
@@ -90,13 +90,13 @@ def get_nodes_caller(pk: int | Node) -> Union[str, Dict[str, Union[List[int], st
     return nodes_caller
 
 
-def get_node_outputs(pk: Optional[int]) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_node_outputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
     from aiida.common.links import LinkType
 
     if pk is None:
         return ""
 
-    node = load_node(pk)
+    node = load_node(pk) if isinstance(pk, int) else pk
     result = ""
     nodes_output = node.base.links.get_outgoing(
         link_type=(LinkType.CREATE, LinkType.RETURN)
@@ -200,11 +200,24 @@ def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, An
 
 
 def get_node_summary(node: Node) -> List[List[str]]:
+    summary = {
+        "table": get_node_summary_table(node),
+        "inputs": get_node_inputs(node),
+        "outputs": get_node_outputs(node),
+        "called": get_nodes_called(node),
+        "caller": get_nodes_caller(node),
+    }
+    return summary
+
+
+def get_node_summary_table(pk: int | Node) -> List[List[str]]:
     """ """
     from plumpy import ProcessState
     from aiida.orm import ProcessNode
 
     table = []
+
+    node = load_node(pk) if isinstance(pk, int) else pk
 
     if isinstance(node, ProcessNode):
         table.append(["type", node.process_label])
