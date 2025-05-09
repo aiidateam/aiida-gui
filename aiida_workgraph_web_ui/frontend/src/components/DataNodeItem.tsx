@@ -37,14 +37,17 @@ function DataNodeItem() {
         </thead>
         <tbody>
           {Object.entries(NodeData).map(([key, value]) => (
-            <tr key={key}>
-              <td>{key}</td>
-              <td>{stringifyValue(value)}</td>
-            </tr>
+            key !== "extras" && (
+              <tr key={key}>
+          <td>{key}</td>
+          <td>{stringifyValue(value)}</td>
+              </tr>
+            )
           ))}
         </tbody>
       </table>
       {NodeData.node_type === 'data.core.structure.StructureData.' && <AtomsItem data={NodeData} />}
+      {NodeData.node_type === 'data.core.array.trajectory.TrajectoryData.' && <AtomsItem data={NodeData} />}
       {NodeData.node_type === 'data.workgraph.ase.atoms.Atoms.AtomsData.' && <AtomsItem data={NodeData} />}
     </div>
   );

@@ -46,13 +46,19 @@ function AtomsItem({ data }) {
 
     console.log("data: ", data)
     let atomsData = {};
+    let atoms = null;
     if (data.node_type === 'data.core.structure.StructureData.') {
       atomsData = structureToAtomsData(data)
+      atoms = new Atoms(atomsData);
+    } else if (data.node_type === 'data.core.array.trajectory.TrajectoryData.') {
+      atoms = [];
+      data["extras"].forEach((atomsData) => {
+        atoms.push(new Atoms(atomsData));
+      });
     } else if (data.node_type === 'data.workgraph.ase.atoms.Atoms.AtomsData.') {
       atomsData = aseAtomsToAtomsData(data)
+      atoms = new Atoms(atomsData);
     }
-    const atoms = new Atoms(atomsData);
-
     if (weasContainerRef.current) {
       // Create an instance of AtomsViewer and pass the Atoms object to it
       const editor = new WEAS({domElement: weasContainerRef.current});
