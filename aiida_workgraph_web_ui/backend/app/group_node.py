@@ -92,12 +92,13 @@ async def read_group_members(
         filters={
             "id": id,
         },
-        tag="n",
+        tag="group",
     )
     qb.append(
         orm.Node,
         project=project,
-        with_group="n",
+        with_group="group",
+        tag="node",
     )
 
     # server‑side filters coming from the DataGrid
@@ -106,9 +107,11 @@ async def read_group_members(
             translate_datagrid_filter_json,
         )
 
-        qb.add_filter("n", translate_datagrid_filter_json(filterModel, project=project))
+        qb.add_filter(
+            "node", translate_datagrid_filter_json(filterModel, project=project)
+        )
 
-    qb.order_by({"n": {sortField: sortOrder}})
+    qb.order_by({"node": {sortField: sortOrder}})
     total = qb.count()
     qb.offset(skip).limit(limit)
 
