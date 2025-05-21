@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export default function useNodeTable(endpointBase) {
   const [rows, setRows]           = useState([]);
@@ -6,6 +6,7 @@ export default function useNodeTable(endpointBase) {
   const [pagination, setPagination] = useState({ page: 0, pageSize: 15 });
   const [sortModel, setSortModel] = useState([{ field: 'pk', sort: 'desc' }]);
   const [filterModel, setFilter]  = useState({ items: [] });
+  const isFetchingRef = useRef(false);
   /* hide description at first render – users can toggle in column menu */
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     description: false,
@@ -15,6 +16,9 @@ export default function useNodeTable(endpointBase) {
   });
 
   const fetchData = useCallback(() => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     const { page, pageSize } = pagination;
     const skip  = page * pageSize;
     const sortField  = sortModel[0]?.field ?? 'pk';
@@ -24,8 +28,14 @@ export default function useNodeTable(endpointBase) {
       `&sortField=${sortField}&sortOrder=${sortOrder}` +
       `&filterModel=${encodeURIComponent(JSON.stringify(filterModel))}`;
 
-    fetch(url).then(r => r.json())
-              .then(({ data, total }) => { setRows(data); setRowCount(total); });
+      fetch(url)
+      .then(r => r.json())
+      .then(({ data, total }) => {
+        setRows(data);
+        setRowCount(total);
+      })
+      .catch((e) => console.error("Fetch error", e))
+      .finally(() => { isFetchingRef.current = false; });
   }, [endpointBase, pagination, sortModel, filterModel]);
 
   /* fetch on mount & whenever deps change */
