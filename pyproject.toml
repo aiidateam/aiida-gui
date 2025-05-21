@@ -33,6 +33,7 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic_settings",
+    "weas_widget",
 ]
 
 [project.urls]
