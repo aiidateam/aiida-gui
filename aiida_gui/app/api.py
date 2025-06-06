@@ -1,14 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiida.manage import manager
-from aiida_workgraph_web_ui.backend.app.workgraph import router as workgraph_router
-from aiida_workgraph_web_ui.backend.app.workchain import router as workchain_router
-from aiida_workgraph_web_ui.backend.app.task import router as task_router
-from aiida_workgraph_web_ui.backend.app.process_node import router as process_router
-from aiida_workgraph_web_ui.backend.app.daemon import router as daemon_router
-from aiida_workgraph_web_ui.backend.app.scheduler import router as scheduler_router
-from aiida_workgraph_web_ui.backend.app.data_node import router as datanode_router
-from aiida_workgraph_web_ui.backend.app.group_node import router as groupnode_router
+from aiida_gui.app.workgraph import router as workgraph_router
+from aiida_gui.app.workchain import router as workchain_router
+from aiida_gui.app.task import router as task_router
+from aiida_gui.app.process_node import router as process_router
+from aiida_gui.app.daemon import router as daemon_router
+from aiida_gui.app.scheduler import router as scheduler_router
+from aiida_gui.app.data_node import router as datanode_router
+from aiida_gui.app.group_node import router as groupnode_router
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os

@@ -7,7 +7,7 @@ The recommended method of installation is to use the Python package manager |pip
 
 .. code-block:: console
 
-    $ pip install aiida-workgraph-web-ui
+    $ pip install aiida-gui
 
 This will install the latest stable version that was released to PyPI.
 
@@ -15,8 +15,8 @@ To install the package from source, first clone the repository and then install 
 
 .. code-block:: console
 
-    $ git clone https://github.com/aiidateam/aiida-workgraph-web-ui
-    $ pip install -e aiida-workgraph-web-ui
+    $ git clone https://github.com/aiidateam/aiida-gui
+    $ pip install -e aiida-gui
 
 The ``-e`` flag will install the package in editable mode, meaning that changes to the source code will be automatically picked up.
 

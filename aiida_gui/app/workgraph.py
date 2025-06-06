@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from aiida import orm
 from aiida.orm.utils.serialize import deserialize_unsafe
 import traceback
-from aiida_workgraph_web_ui.backend.app.node_table import (
+from aiida_gui.app.node_table import (
     make_node_router,
     process_project,
     projected_data_to_dict_process,

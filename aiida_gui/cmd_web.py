@@ -42,7 +42,7 @@ def start():
         backend_process = subprocess.Popen(
             [
                 "uvicorn",
-                "aiida_workgraph_web_ui.backend.app.api:app",
+                "aiida_gui.app.api:app",
                 "--reload",
                 "--port",
                 "8000",

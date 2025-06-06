@@ -24,7 +24,7 @@ def projected_data_to_dict_process(qb, project):
     """
     Convert the projected data from a QueryBuilder to a list of dictionaries.
     """
-    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+    from aiida_gui.app.utils import time_ago
 
     # Iterate over the results and convert each row to a dictionary
     results = []
@@ -48,7 +48,7 @@ def projected_data_to_dict(qb, project):
     """
     Convert the projected data from a QueryBuilder to a list of dictionaries.
     """
-    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+    from aiida_gui.app.utils import time_ago
 
     # Iterate over the results and convert each row to a dictionary
     results = []
@@ -80,7 +80,7 @@ def make_node_router(
         kill_processes,
     )
     from aiida.tools import delete_nodes
-    from aiida_workgraph_web_ui.backend.app.utils import (
+    from aiida_gui.app.utils import (
         translate_datagrid_filter_json,
     )
 

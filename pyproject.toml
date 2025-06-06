@@ -3,8 +3,8 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "aiida-workgraph-web-ui"
-dynamic = ["version"]  # read from aiida_workgraph_web_ui/__init__.py
+name = "aiida-gui"
+dynamic = ["version"]  # read from aiida_gui/__init__.py
 description = "Design flexible node-based workflow for AiiDA calculation."
 authors = [{name = "Xing Wang", email = "xingwang1991@gmail.com"}]
 readme = "README.md"
@@ -37,8 +37,8 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://aiida-workgraph-web-ui.readthedocs.io"
-Source = "https://github.com/aiidateam/aiida-workgraph-web-ui"
+Documentation = "https://aiida-gui.readthedocs.io"
+Source = "https://github.com/aiidateam/aiida-gui"
 
 [project.optional-dependencies]
 docs = [
@@ -66,16 +66,16 @@ tests = [
 ]
 
 [project.scripts]
-workgraph_web_ui = "aiida_workgraph_web_ui.backend.cmd_web:web"
+workgraph_web_ui = "aiida_gui.cmd_web:web"
 
 [project.entry-points."workgraph.cmdline"]
-"web" = "aiida_workgraph_web_ui.backend.cmd_web:web"
+"web" = "aiida_gui.cmd_web:web"
 
 [tool.flit.sdist]
 exclude = [
     "docs/",
     "tests/",
-    "aiida_workgraph_web_ui/frontend/node_modules/",
+    "aiida_gui/frontend/node_modules/",
 ]
 
 

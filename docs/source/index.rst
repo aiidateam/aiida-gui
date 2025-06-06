@@ -6,7 +6,7 @@ The AiiDA Workgraph Web UI is a web interface for viewing and managing the workg
 
 .. note::
 
-   If you encounter any problems, please update the widget to the latest version. If the problem persists, please report it on the `GitHub issue <https://github.com/aiidateam/aiida-workgraph-web-ui/issues>`_
+   If you encounter any problems, please update the widget to the latest version. If the problem persists, please report it on the `GitHub issue <https://github.com/aiidateam/aiida-gui/issues>`_
 
 
 .. toctree::

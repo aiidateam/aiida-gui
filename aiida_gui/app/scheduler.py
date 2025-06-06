@@ -22,7 +22,7 @@ def projected_data_to_dict_process(qb, project):
     """
     Convert the projected data from a QueryBuilder to a list of dictionaries.
     """
-    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+    from aiida_gui.app.utils import time_ago
 
     # Iterate over the results and convert each row to a dictionary
     results = []
@@ -343,7 +343,7 @@ async def read_scheduler_process(
     # priorities = scheduler.get_process_priority()
     # server‑side filters coming from the DataGrid
     if filterModel:
-        from aiida_workgraph_web_ui.backend.app.utils import (
+        from aiida_gui.app.utils import (
             translate_datagrid_filter_json,
         )
 

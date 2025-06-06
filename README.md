@@ -1,7 +1,7 @@
 # Welcome to AiiDA WorkGraph Web UI!
-[![PyPI version](https://badge.fury.io/py/aiida-workgraph-web-ui.svg)](https://badge.fury.io/py/aiida-workgraph-web-ui)
-[![Docs status](https://readthedocs.org/projects/aiida-workgraph-web-ui/badge)](http://aiida-workgraph-web-ui.readthedocs.io/)
-[![Unit test](https://github.com/aiidateam/aiida-workgraph-web-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/aiidateam/aiida-workgraph-web-ui/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/aiida-gui.svg)](https://badge.fury.io/py/aiida-gui)
+[![Docs status](https://readthedocs.org/projects/aiida-gui/badge)](http://aiida-gui.readthedocs.io/)
+[![Unit test](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml)
 
 
 Web UI to visualize and manage the AiiDA WorkGraph.

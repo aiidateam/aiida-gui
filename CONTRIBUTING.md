@@ -53,12 +53,12 @@ which can automatically refresh on changes of the JS files. To start the backend
 server please run
 
 ```console
-python aiida_workgraph_web_ui/backend/main.py
+python aiida_gui/backend/main.py
 ```
 
 then start the frontend server with
 ```console
-npm --prefix aiida_workgraph_web_ui/frontend start
+npm --prefix aiida_gui/frontend start
 ```
 
 The frontend server will refresh
@@ -80,7 +80,7 @@ playwright codegen
 You might want to clean your cache
 
 ```console
-npm --prefix aiida_workgraph_web_ui/frontend cache clean
+npm --prefix aiida_gui/frontend cache clean
 ```
 
 and also clear your browsers cache or try to start new private window.

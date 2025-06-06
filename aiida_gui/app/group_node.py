@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Optional, Union, List
 from fastapi import HTTPException, Query
-from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
+from aiida_gui.app.node_table import make_node_router
 from aiida import orm
 import traceback
 
@@ -12,7 +12,7 @@ def projected_data_to_dict(qb, project):
     """
     Convert the projected data from a QueryBuilder to a list of dictionaries.
     """
-    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+    from aiida_gui.app.utils import time_ago
 
     # Iterate over the results and convert each row to a dictionary
     results = []
@@ -31,7 +31,7 @@ def projected_data_to_dict_group(qb, project):
     """
     Convert the projected data from a QueryBuilder to a list of dictionaries.
     """
-    from aiida_workgraph_web_ui.backend.app.utils import time_ago
+    from aiida_gui.app.utils import time_ago
 
     # Iterate over the results and convert each row to a dictionary
     results = []
@@ -103,7 +103,7 @@ async def read_group_members(
 
     # server‑side filters coming from the DataGrid
     if filterModel:
-        from aiida_workgraph_web_ui.backend.app.utils import (
+        from aiida_gui.app.utils import (
             translate_datagrid_filter_json,
         )
 

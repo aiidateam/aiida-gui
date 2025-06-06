@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from aiida import orm
 import traceback
-from aiida_workgraph_web_ui.backend.app.node_table import (
+from aiida_gui.app.node_table import (
     make_node_router,
     process_project,
     projected_data_to_dict_process,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Any
 from fastapi import HTTPException
-from aiida_workgraph_web_ui.backend.app.node_table import make_node_router
+from aiida_gui.app.node_table import make_node_router
 from weas_widget.utils import ASEAdapter
 from aiida import orm
 

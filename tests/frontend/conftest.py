@@ -98,7 +98,7 @@ def ran_wg_calcfunction(
 @pytest.fixture(scope="module")
 def uvicorn_configuration():
     return {
-        "app": "aiida_workgraph_web_ui.backend.app.api:app",
+        "app": "aiida_gui.app.api:app",
         "host": "0.0.0.0",
         "port": 8000,
         "log_level": "info",
