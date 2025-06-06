@@ -6,26 +6,24 @@ from playwright.sync_api import expect
 @pytest.mark.frontend
 def test_homepage(web_server, page):
     page.goto("http://localhost:8000")
-    assert page.title() == "AiiDA-WorkGraph App"
+    assert page.title() == "AiiDA GUI"
 
-    # Check if at least one of the links to WorkGraph is visible
-    elements = page.locator("a[href='/workgraph']")
+    # Check if at least one of the links to Process is visible
+    elements = page.locator("a[href='/process']")
 
-    assert elements.count() > 0, "No elements matching 'a[href='/workgraph']' found"
+    assert elements.count() > 0, "No elements matching 'a[href='/process']' found"
 
     if not elements.first.is_visible():
-        pytest.fail(
-            "None of the 'a[href='/workgraph']' elements are visible on the page"
-        )
+        pytest.fail("None of the 'a[href='/process']' elements are visible on the page")
 
 
 @pytest.mark.frontend
-def test_workgraph(web_server, page, ran_wg_calcfunction):
+def test_process(web_server, page, ran_workchain):
     page.goto("http://localhost:8000")
-    page.click('a[href="/workgraph"]')
+    page.click('a[href="/process"]')
 
-    # Check for WorkGraph Table Header
-    assert page.get_by_role("heading", name="WorkGraph").is_visible()
+    # Check for Process Table Header
+    assert page.get_by_role("heading", name="Process").is_visible()
 
     # Check for Table Headers in DataGrid
     assert page.get_by_role("columnheader", name="PK").is_visible()
@@ -40,23 +38,24 @@ def test_workgraph(web_server, page, ran_wg_calcfunction):
 
     # Check if at least one row is visible
     page.locator('[data-field="process_label"]').get_by_text(
-        "WorkGraph<test_debug_math>"
+        "MultiplyAddWorkChain"
     ).hover()
     rows = page.get_by_role("row").all()
     assert len(rows) >= 2
 
 
 @pytest.mark.frontend
-def test_workgraph_item(web_server, page, ran_wg_calcfunction):
-    page.goto("http://localhost:8000/workgraph/")
-    page.get_by_role("link", name=str(ran_wg_calcfunction.pk), exact=True).click()
+def test_process_item(web_server, page, ran_workchain):
+    page.goto("http://localhost:8000/process/")
+    page.get_by_role("link", name=str(ran_workchain.pk), exact=True).click()
 
-    expect(page.get_by_text("sumdiff2")).to_be_visible(timeout=5000)  # 5s timeout
+    task_name = f"CALL-{ran_workchain.called_descendants[0].pk}"
+    expect(page.get_by_text(task_name)).to_be_visible(timeout=5000)  # 5s timeout
 
     # Click "Arrange" button
     page.get_by_role("button", name="Arrange").click()
 
-    gui_node = page.get_by_text("sumdiff2")
+    gui_node = page.get_by_text(task_name)
 
     # Check if background color changes
     gui_node_color = gui_node.evaluate(
@@ -94,34 +93,34 @@ def test_workgraph_item(web_server, page, ran_wg_calcfunction):
 
     # Check if "Summary" tab works
     page.get_by_role("button", name="Summary").click()
-    assert page.get_by_text("typeWorkGraph<test_debug_math>").is_visible()
+    assert page.get_by_text("typeMultiplyAddWorkChain").is_visible()
 
     # Check if "Log" tab works
     page.get_by_role("button", name="Log").click()
     log_line = (
         page.locator(".log-content")
         .locator("div")
-        .filter(has_text=re.compile(r".*Finalize workgraph*"))
+        .filter(has_text=re.compile(r".*Submitted the `ArithmeticAddCalculation`:*"))
     )
     log_line.wait_for(state="visible")
     assert log_line.is_visible()
 
     # Verify that Time  works
     page.get_by_role("button", name="Time").click()
-    row = page.locator(".rct-sidebar-row ").get_by_text("sumdiff2")
+    row = page.locator(".rct-sidebar-row ").get_by_text(task_name)
     row.wait_for(state="visible")
     assert row.is_visible()
 
 
 @pytest.mark.frontend
-def test_datanode_item(web_server, page, ran_wg_calcfunction):
+def test_datanode_item(web_server, page, ran_workchain):
     page.goto("http://localhost:8000/datanode/")
     # Check for Table Headers in DataGrid
     assert page.get_by_role("columnheader", name="PK").is_visible()
     assert page.get_by_role("columnheader", name="Created").is_visible()
     assert page.get_by_role("columnheader", name="Label").is_visible()
 
-    data_node_pk = ran_wg_calcfunction.nodes["sumdiff1"].inputs["x"].value.pk
+    data_node_pk = ran_workchain.called_descendants[0].inputs.x.pk
 
     # Click on the link for the specific data node
     page.get_by_role("link", name=str(data_node_pk), exact=True).click()
@@ -135,7 +134,7 @@ def test_datanode_item(web_server, page, ran_wg_calcfunction):
 
 
 @pytest.mark.frontend
-def test_daemon(web_server, page, ran_wg_calcfunction):
+def test_daemon(web_server, page, ran_workchain):
     page.goto("http://localhost:8000/daemon/")
     # Verify that only one row is visible
     expect(page.locator(":nth-match(tr, 1)")).to_be_visible()
@@ -169,56 +168,52 @@ def test_daemon(web_server, page, ran_wg_calcfunction):
 
 
 @pytest.mark.frontend
-def test_workgraph_delete(web_server, page, ran_wg_calcfunction):
-    """Tests deleting the last WorkGraph node in DataGrid."""
-    page.goto("http://localhost:8000/workgraph")
+def test_process_delete(web_server, page, ran_workchain):
+    """Tests deleting the last process in DataGrid, accounting for pagination."""
+    page.goto("http://localhost:8000/process")
 
-    # Ensure the last row is visible
+    # Locate the last row and capture its unique PK from the link
     last_row = page.get_by_role("row").last
-    expect(last_row).to_be_visible()
+    node_link = last_row.get_by_role("link")
+    node_id = node_link.inner_text()
 
-    # Get delete button in the last row
+    # Verify that cancelling deletion does not remove the row
     delete_button = last_row.get_by_role("button", name="Delete")
-
-    # Verify canceling deletion does not remove the row
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
     page.get_by_role("button", name="Cancel").click()
     expect(last_row).to_be_visible()
 
-    initial_rows = len(page.locator('[role="row"]').all())
-
     # Confirm deletion
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
     page.get_by_role("button", name="Delete").click()
-    # Wait for table to update
-    expect(page.locator('[role="row"]')).to_have_count(initial_rows - 1)
+
+    # Wait for the grid to refresh and assert that no link with the old PK remains
+    expect(page.get_by_role("link", name=node_id)).to_have_count(0)
 
 
 @pytest.mark.frontend
-def test_datanode_delete(web_server, page, ran_wg_calcfunction):
-    """Tests deleting the last DataNode in DataGrid."""
+def test_datanode_delete(web_server, page, ran_workchain):
+    """Tests deleting the last DataNode in DataGrid, accounting for pagination."""
     page.goto("http://localhost:8000/datanode")
 
-    # Ensure last row is visible
+    # Locate the last row and capture its unique PK from the link
     last_row = page.get_by_role("row").last
-    expect(last_row).to_be_visible()
+    node_link = last_row.get_by_role("link")
+    node_id = node_link.inner_text()
 
-    # Get delete button in the last row
+    # Verify that cancelling deletion does not remove the row
     delete_button = last_row.get_by_role("button", name="Delete")
-
-    # Verify canceling deletion does not remove the row
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
     page.get_by_role("button", name="Cancel").click()
     expect(last_row).to_be_visible()
 
-    initial_rows = len(page.locator('[role="row"]').all())
-
     # Confirm deletion
     delete_button.click()
     expect(page.get_by_text("Confirm deletion")).to_be_visible()
     page.get_by_role("button", name="Delete").click()
-    # Wait for table to update
-    expect(page.locator('[role="row"]')).to_have_count(initial_rows - 1)
+
+    # Wait for the grid to refresh and assert that no link with the old PK remains
+    expect(page.get_by_role("link", name=node_id)).to_have_count(0)

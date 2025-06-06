@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from 'antd';
-import { PageContainer, TopMenu } from './WorkGraphItemStyles';
+import { PageContainer, TopMenu } from './ProcessItemStyles';
 import ProcessSummary from './ProcessSummary';
 import ProcessLog from './ProcessLog';
 

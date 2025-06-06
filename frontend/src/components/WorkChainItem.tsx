@@ -4,18 +4,18 @@ import '../App.css';
 import '../rete.css';
 import { createEditor, addControls, removeControls } from '../rete/default';
 import { Button, Switch } from "antd";
-import WorkGraphIndicator from './WorkGraphIndicator'; // Import the WorkGraphIndicator component
+import WorkGraphIndicator from './ProcessIndicator'; // Import the WorkGraphIndicator component
 import ProcessSummary from './ProcessSummary';
 import ProcessLog from './ProcessLog';
 import TaskDetails from './TaskDetails';
-import NodeDurationGraph from './WorkGraphDuration'
+import NodeDurationGraph from './ProcessDuration'
 import {
   PageContainer,
   EditorContainer,
   LayoutAction,
   TopMenu,
   EditorWrapper,
-} from './WorkGraphItemStyles';
+} from './ProcessItemStyles';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 

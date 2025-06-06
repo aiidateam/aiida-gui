@@ -1,12 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiida.manage import manager
-from aiida_gui.app.workgraph import router as workgraph_router
 from aiida_gui.app.workchain import router as workchain_router
 from aiida_gui.app.task import router as task_router
 from aiida_gui.app.process_node import router as process_router
 from aiida_gui.app.daemon import router as daemon_router
-from aiida_gui.app.scheduler import router as scheduler_router
 from aiida_gui.app.data_node import router as datanode_router
 from aiida_gui.app.group_node import router as groupnode_router
 from fastapi.staticfiles import StaticFiles
@@ -46,17 +44,15 @@ app.add_middleware(
 
 @app.get("/api", tags=["root"])
 async def read_root() -> dict:
-    return {"message": "Welcome to AiiDA-WorkGraph."}
+    return {"message": "Welcome to AiiDA."}
 
 
-app.include_router(workgraph_router)
 app.include_router(workchain_router)
 app.include_router(task_router)
 app.include_router(process_router)
 app.include_router(datanode_router)
 app.include_router(groupnode_router)
 app.include_router(daemon_router)
-app.include_router(scheduler_router)
 
 
 @app.get("/debug")

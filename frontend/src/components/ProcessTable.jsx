@@ -14,9 +14,9 @@ export const processColumns = linkPrefix => ([
       const typeKey = row.node_type.toLowerCase();
 
       let prefix = '/process';
-      if (typeKey.endsWith('workgraphnode.')) {
-        prefix = '/workgraph';
-      } else if (typeKey.endsWith('workchainnode.')) {
+      if (typeKey.endsWith('workchainnode.')) {
+        prefix = '/workchain';
+      } else if (typeKey.endsWith('workfunctionnode.')) {
         prefix = '/workchain';
       }
 
@@ -126,24 +126,6 @@ export function ProcessTable() {
         title="Process nodes"
         endpointBase="http://localhost:8000/api/process"
         linkPrefix="/process"
-        actionBase={`http://localhost:8000/api/process`}
-        config={{
-          columns       : processColumns,
-          buildExtraActions: extraActions,
-          editableFields: ['label', 'description'],
-        }}
-      />
-    );
-  }
-
-
-
-  export function WorkGraphTable() {
-    return (
-      <NodeTable
-        title="WorkGraph nodes"
-        endpointBase="http://localhost:8000/api/workgraph"
-        linkPrefix="/workgraph"
         actionBase={`http://localhost:8000/api/process`}
         config={{
           columns       : processColumns,

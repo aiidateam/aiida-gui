@@ -13,7 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import useNodeTable from '../hooks/useNodeTable';
 import { IconButton, Tooltip } from '@mui/material';
-import { ConfirmDeleteModal } from './WorkGraphModals';
+import { ConfirmDeleteModal } from './Modals';
 import { Delete } from '@mui/icons-material';
 
 /* --------- MUI DataGrid ↔︎ MUI Pagination bridge --------- */

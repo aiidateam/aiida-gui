@@ -1,11 +1,9 @@
 import pytest
-from typing import Generator
-
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import expect
 
-from aiida_workgraph import WorkGraph
-from aiida import orm
+from aiida.engine import run_get_node
+from aiida.workflows.arithmetic.multiply_add import MultiplyAddWorkChain
 import uvicorn
 
 from multiprocessing import Process, Value
@@ -76,23 +74,14 @@ def set_backend_server_settings(aiida_profile):
     os.environ["AIIDA_WORKGRAPH_GUI_PROFILE"] = aiida_profile.name
 
 
-@pytest.fixture(scope="module")
-def ran_wg_calcfunction(
+@pytest.fixture
+def ran_workchain(
     aiida_profile,
-) -> Generator[WorkGraph, None, None]:
+    add_code,
+):
     """A workgraph with calcfunction."""
-
-    wg = WorkGraph(name="test_debug_math")
-    sumdiff1 = wg.add_task(
-        "workgraph.test_sum_diff",
-        "sumdiff1",
-        x=orm.Int(2).store(),
-        y=orm.Int(3).store(),
-    )
-    sumdiff2 = wg.add_task("workgraph.test_sum_diff", "sumdiff2", x=orm.Int(4).store())
-    wg.add_link(sumdiff1.outputs[0], sumdiff2.inputs[1])
-    wg.run()
-    yield wg
+    result, node = run_get_node(MultiplyAddWorkChain, x=2, y=3, z=4, code=add_code)
+    return node
 
 
 @pytest.fixture(scope="module")
