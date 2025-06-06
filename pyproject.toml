@@ -75,7 +75,7 @@ workgraph_web_ui = "aiida_gui.cmd_web:web"
 exclude = [
     "docs/",
     "tests/",
-    "aiida_gui/frontend/node_modules/",
+    "frontend/node_modules/",
 ]
 
 
