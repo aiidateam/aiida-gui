@@ -69,7 +69,7 @@ To determine the right commands for invoking DOM elements playwright offers a
 tool that outputs commands while navigating through the GUI. It requires a
 webserver to be running so it can be started with
 ```console
-workgraph web start
+aiida-gui start
 playwright codegen
 ```
 

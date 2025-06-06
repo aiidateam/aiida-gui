@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
-project = "AiiDA WorkGraph Web UI"
+project = "AiiDA GUI"
 copyright = "2024, Xing Wang"
 author = "Xing Wang"
 

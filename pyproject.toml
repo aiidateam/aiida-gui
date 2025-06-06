@@ -66,10 +66,7 @@ tests = [
 ]
 
 [project.scripts]
-workgraph_web_ui = "aiida_gui.cmd_web:web"
-
-[project.entry-points."workgraph.cmdline"]
-"web" = "aiida_gui.cmd_web:web"
+aiida-gui = "aiida_gui.cmd_web:cli"
 
 [tool.flit.sdist]
 exclude = [

@@ -1,4 +1,4 @@
-# Welcome to AiiDA WorkGraph Web UI!
+# Welcome to AiiDA GUI!
 [![PyPI version](https://badge.fury.io/py/aiida-gui.svg)](https://badge.fury.io/py/aiida-gui)
 [![Docs status](https://readthedocs.org/projects/aiida-gui/badge)](http://aiida-gui.readthedocs.io/)
 [![Unit test](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml)
@@ -6,34 +6,25 @@
 
 Web UI to visualize and manage the AiiDA WorkGraph.
 
-## Frontend
-Use `rete-kit` to create the frontend, using `react`
 
-```console
-npm i -g rete-kit
-rete-kit frontend
-```
-### Run
-```console
-npm start
-```
+## Installation
 
-### Build
-Build frontend application so that it generates static files (HTML, CSS, JavaScript, etc.).
-```console
-npm run build
-```
-This typically creates a build directory with all the static files needed to deploy the frontend.
+```bash
+pip install aiida-gui
+````
 
-### Include Frontend Build in the Package
-Now, ensure these static files are included in the Python package. The [tool.setuptools.package_data] in the pyproject.toml should be set to include these files.
+## Usage
 
-```toml
-[tool.setuptools.package_data]
-your_package_name = ["path/to/frontend/build/*"]
+Start the AiiDA GUI server with the following command:
+
+```bash
+aiida-gui start
 ```
 
-## Backend
-Use `FastAPI`
+Open `http://localhost:8000` to access the AiiDA GUI in your web browser.
 
-The documentation page is `http://localhost:8000/docs`.
+Stop the AiiDA GUI server with the following command:
+
+```bash
+aiida-gui stop
+```

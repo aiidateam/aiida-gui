@@ -1,12 +1,10 @@
-from aiida_workgraph.cli.cmd_workgraph import workgraph
-import subprocess
+# aiida_gui/cmd_web.py
+
 import click
+import subprocess
 import os
 import signal
 from pathlib import Path
-
-
-REACT_PORT = "3000"
 
 
 def get_package_root():
@@ -26,34 +24,39 @@ def get_pid_file_path():
     return aiida_daemon_dir / "web_processes.pid"
 
 
-@workgraph.group("web")
-def web():
-    """Commands to manage the web application (both backend and frontend)."""
+@click.group()
+def cli():
+    """aiida-gui: manage the FastAPI‐based GUI (start/stop)."""
+    pass
 
 
-@web.command()
+@cli.command()
 def start():
-    """Start the web application."""
+    """Start the web application (FastAPI backend)."""
     click.echo("Starting the web application...")
     pid_file_path = get_pid_file_path()
 
+    # Launch uvicorn in the background
+    backend_process = subprocess.Popen(
+        [
+            "uvicorn",
+            "aiida_gui.app.api:app",
+            "--reload",
+            "--port",
+            "8000",
+        ]
+    )
+
+    # Write the PID into our file
     with open(pid_file_path, "w") as pid_file:
-        # Starting FastAPI backend
-        backend_process = subprocess.Popen(
-            [
-                "uvicorn",
-                "aiida_gui.app.api:app",
-                "--reload",
-                "--port",
-                "8000",
-            ]
-        )
         pid_file.write(f"backend:{backend_process.pid}\n")
 
+    click.echo(f"Web backend started (PID {backend_process.pid}).")
 
-@web.command()
+
+@cli.command()
 def stop():
-    """Stop the web application."""
+    """Stop the web application (terminates any PIDs in the .aiida/daemon file)."""
     pid_file_path = get_pid_file_path()
 
     if not pid_file_path.exists():
@@ -67,6 +70,7 @@ def stop():
                 os.kill(int(pid), signal.SIGTERM)
                 click.echo(f"Stopped {proc_name} (PID: {pid})")
             except ProcessLookupError:
-                click.echo(f"{proc_name} (PID: {pid}) not found")
+                click.echo(f"{proc_name} (PID: {pid}) was not found")
 
     os.remove(pid_file_path)
+    click.echo("Cleaned up PID file.")
