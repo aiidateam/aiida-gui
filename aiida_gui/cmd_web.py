@@ -31,21 +31,34 @@ def cli():
 
 
 @cli.command()
-def start():
+@click.option(
+    "--watch",
+    is_flag=True,
+    default=False,
+    help="Enable auto-reloading when files change (useful for development).",
+)
+def start(watch):
     """Start the web application (FastAPI backend)."""
     click.echo("Starting the web application...")
     pid_file_path = get_pid_file_path()
 
+    command = [
+        "uvicorn",
+        "aiida_gui.app.api:app",
+        "--port",
+        "8000",
+    ]
+
+    if watch:
+        command.append("--reload")
+        click.echo("Watch mode enabled: The application will reload on file changes.")
+    else:
+        click.echo(
+            "Watch mode disabled: The application will not reload on file changes."
+        )
+
     # Launch uvicorn in the background
-    backend_process = subprocess.Popen(
-        [
-            "uvicorn",
-            "aiida_gui.app.api:app",
-            "--reload",
-            "--port",
-            "8000",
-        ]
-    )
+    backend_process = subprocess.Popen(command)
 
     # Write the PID into our file
     with open(pid_file_path, "w") as pid_file:
