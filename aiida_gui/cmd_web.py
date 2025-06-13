@@ -1,5 +1,3 @@
-# aiida_gui/cmd_web.py
-
 import click
 import subprocess
 import os
@@ -37,14 +35,21 @@ def cli():
     default=False,
     help="Enable auto-reloading when files change (useful for development).",
 )
-def start(watch):
+@click.option(
+    "--background",
+    "-b",
+    is_flag=True,
+    default=False,
+    help="Run the web application in the background and detach from terminal.",
+)
+def start(watch, background):
     """Start the web application (FastAPI backend)."""
-    click.echo("Starting the web application...")
     pid_file_path = get_pid_file_path()
-
     command = [
         "uvicorn",
         "aiida_gui.app.api:app",
+        "--host",
+        "0.0.0.0",
         "--port",
         "8000",
     ]
@@ -57,14 +62,21 @@ def start(watch):
             "Watch mode disabled: The application will not reload on file changes."
         )
 
-    # Launch uvicorn in the background
-    backend_process = subprocess.Popen(command)
-
-    # Write the PID into our file
-    with open(pid_file_path, "w") as pid_file:
-        pid_file.write(f"backend:{backend_process.pid}\n")
-
-    click.echo(f"Web backend started (PID {backend_process.pid}).")
+    if background:
+        click.echo("Starting the web application in background...")
+        # Launch uvicorn in the background
+        backend_process = subprocess.Popen(command)
+        # Write the PID into our file for later stop
+        with open(pid_file_path, "w") as pid_file:
+            pid_file.write(f"backend:{backend_process.pid}\n")
+        click.echo(f"Web backend started (PID {backend_process.pid}).")
+    else:
+        click.echo("Starting the web application in foreground. Press Ctrl+C to stop.")
+        try:
+            # Block until the process is terminated
+            subprocess.call(command)
+        except KeyboardInterrupt:
+            click.echo("\nWeb backend terminated by user.")
 
 
 @cli.command()
@@ -87,3 +99,7 @@ def stop():
 
     os.remove(pid_file_path)
     click.echo("Cleaned up PID file.")
+
+
+if __name__ == "__main__":
+    cli()
