@@ -14,6 +14,7 @@ async def read_task(id: int, path: str):
     from .utils import node_to_short_json
     from aiida.orm import load_node
     from aiida_workgraph.orm.workgraph import WorkGraphNode
+    from aiida_workgraph.utils import deserialize_input_values_recursively
 
     # import inspect
 
@@ -22,7 +23,7 @@ async def read_task(id: int, path: str):
         segments = path.split("/")
         if isinstance(node, WorkGraphNode):
             ndata = node.workgraph_data["tasks"][segments[0]]
-            ndata = deserialize_unsafe(ndata)
+            deserialize_input_values_recursively(ndata["inputs"], deserialize_unsafe)
             executor = node.task_executors.get(segments[0], None)
             if len(segments) == 1:
                 ndata["executor"] = executor if executor else {}
@@ -40,8 +41,9 @@ async def read_task(id: int, path: str):
                     for child in map_info["children"]:
                         for prefix in map_info["prefix"]:
                             if f"{prefix}_{child}" == segments[1]:
-                                ndata = deserialize_unsafe(
-                                    node.workgraph_data["tasks"][child]
+                                deserialize_input_values_recursively(
+                                    node.workgraph_data["tasks"][child]["inputs"],
+                                    deserialize_unsafe,
                                 )
                                 executor = node.task_executors.get(child)
                                 ndata["name"] = f"{prefix}_{child}"
