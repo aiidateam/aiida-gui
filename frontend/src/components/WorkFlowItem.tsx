@@ -72,7 +72,7 @@ export function useRete<T extends { destroy(): void }>(
 
 
 
-function WorkflowItem({endPoint = 'workchain'}) {
+function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
   const { pk } = useParams();
   const location = useLocation();
 
@@ -86,7 +86,7 @@ function WorkflowItem({endPoint = 'workchain'}) {
   const [detailNodeViewSwitch, setDetailNodeViewSwitch] = useState(false); // State to manage the realtime switch
 
   // This is the base path: /process/45082/
-  const basePath = `/process/${pk}/`;
+  const basePath = `/${pathType}/${pk}/`;
 
   // subPath will be everything after that basePath in the URL.
   // e.g. if user visits /process/45082/sub_wg, subPath = "sub_wg"
