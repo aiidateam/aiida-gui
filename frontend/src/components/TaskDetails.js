@@ -128,7 +128,7 @@ function TaskDetails({
    * Main click handler for the "Go to WorkGraph" button
    */
   const handleWorkFlowClick = () => {
-    if (nodeType === 'GRAPH_BUILDER') {
+    if (nodeType === 'GRAPH_TASK') {
       // Only valid if we have a processPk
       if (processPk) {
         navigate(`/workgraph/${processPk}`);
@@ -163,12 +163,12 @@ function TaskDetails({
 
   /**
    * isButtonDisabled logic:
-   *  - GRAPH_BUILDER => disabled if no processPk
+   *  - GRAPH_TASK => disabled if no processPk
    *  - WORKGRAPH => always enabled (sub-route is fallback)
    *  - MAP => enabled only if state in [RUNNING, FINISHED, FAILED], else disabled
    */
   let isButtonDisabled = false;
-  if (nodeType === 'GRAPH_BUILDER') {
+  if (nodeType === 'GRAPH_TASK') {
     isButtonDisabled = !processPk;
   }
   else if (nodeType === 'WORKGRAPH') {
@@ -210,8 +210,8 @@ function TaskDetails({
 
       <TaskDetailsTitle>Task Details</TaskDetailsTitle>
 
-      {/* Show button only if type is GRAPH_BUILDER, WORKGRAPH, or MAP */}
-      {['GRAPH_BUILDER', 'WORKGRAPH', 'MAP'].includes(nodeType) && (
+      {/* Show button only if type is GRAPH_TASK, WORKGRAPH, or MAP */}
+      {['GRAPH_TASK', 'WORKGRAPH', 'MAP'].includes(nodeType) && (
         <WorkFlowButton onClick={handleWorkFlowClick} disabled={isButtonDisabled}>
           Go to WorkGraph
         </WorkFlowButton>
