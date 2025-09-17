@@ -12,7 +12,7 @@ def aiida_profile(aiida_config, aiida_profile_factory):
 
 @pytest.fixture(scope="module")
 def set_backend_server_settings(aiida_profile):
-    os.environ["AIIDA_WORKGRAPH_GUI_PROFILE"] = aiida_profile.name
+    os.environ["AIIDA_GUI_PROFILE"] = aiida_profile.name
 
 
 @pytest.fixture(scope="module")

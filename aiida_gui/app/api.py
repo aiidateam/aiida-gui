@@ -22,17 +22,17 @@ from aiida_gui.app.plugin import get_plugins, mount_plugins
 class BackendSettings(BaseSettings):
     """
     Settings can be set by setting the environment variables in upper case.
-    For example for setting `aiida_workgraph_gui_profile` one has to export
-    the evironment variable `AIIDA_WORKGRAPH_GUI_PROFILE`.
+    For example for setting `aiida_gui_profile` one has to export
+    the evironment variable `AIIDA_GUI_PROFILE`.
     """
 
-    aiida_workgraph_gui_profile: str = ""  # if empty aiida uses default profile
+    aiida_gui_profile: str = ""  # if empty aiida uses default profile
 
 
 backend_settings = BackendSettings()
 
 app = FastAPI()
-manager.get_manager().load_profile(backend_settings.aiida_workgraph_gui_profile)
+manager.get_manager().load_profile(backend_settings.aiida_gui_profile)
 
 app.add_middleware(
     CORSMiddleware,
