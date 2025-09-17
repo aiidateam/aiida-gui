@@ -166,9 +166,32 @@ def get_workchain_data(node: Node) -> dict:
     return graph_data
 
 
+def get_processes_latest(
+    pk: int, item_type: str = "called_process"
+) -> Dict[str, Dict[str, Union[int, str]]]:
+    """Get the latest info of all tasks from the process."""
+    import aiida
+
+    tasks = {}
+    if pk is None:
+        return tasks
+    node = aiida.orm.load_node(pk)
+    if item_type == "called_process":
+        # fetch the process that called by the workgraph
+        for link in node.base.links.get_outgoing().all():
+            if isinstance(link.node, aiida.orm.ProcessNode):
+                tasks[f"{link.link_label}-{link.node.pk}"] = {
+                    "pk": link.node.pk,
+                    "process_type": link.node.process_type,
+                    "state": link.node.process_state.value,
+                    "ctime": link.node.ctime,
+                    "mtime": link.node.mtime,
+                }
+    return tasks
+
+
 def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, Any]:
     """Export a node to a rete js node."""
-    from aiida_workgraph.utils import get_processes_latest
 
     executor = get_executor_source(tdata)
     tdata_short = {
