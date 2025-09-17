@@ -46,7 +46,7 @@ async def read_workchain(id: int):
 
 @router.get("/api/workchain-state/{id}")
 async def read_tasks_state(id: int, item_type: str = "called_process"):
-    from aiida_workgraph.utils import get_processes_latest
+    from aiida_gui.app.utils import get_processes_latest
 
     try:
         processes_info = get_processes_latest(id, item_type=item_type)
