@@ -88,7 +88,7 @@ def ran_workchain(
 def uvicorn_configuration():
     return {
         "app": "aiida_gui.app.api:app",
-        "host": "0.0.0.0",
+        "host": "127.0.0.1",
         "port": 8000,
         "log_level": "info",
         "workers": 2,
