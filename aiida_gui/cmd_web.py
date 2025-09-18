@@ -49,7 +49,7 @@ def start(watch, background):
         "uvicorn",
         "aiida_gui.app.api:app",
         "--host",
-        "0.0.0.0",
+        "127.0.0.1",
         "--port",
         "8000",
     ]
