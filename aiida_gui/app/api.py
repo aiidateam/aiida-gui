@@ -88,20 +88,36 @@ so we use the index.html serve all routes except API specific ones, then load al
 backend_dir = Path(__file__).parent
 build_dir = backend_dir / "../static"
 build_dir = os.getenv("REACT_BUILD_DIR", build_dir)
+build_dir = Path(build_dir)
+index_file = build_dir / "index.html"
+static_dir = build_dir / "static"
+frontend_available = index_file.is_file() and static_dir.is_dir()
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend_root():
+    """Serve the frontend root page when built assets are available."""
+    if not frontend_available:
+        msg = (
+            "AiiDA GUI frontend assets are missing. "
+            "Build them with: `cd frontend && npm install && npm run build`."
+        )
+        raise StarletteHTTPException(status_code=503, detail=msg)
+    return FileResponse(index_file, media_type="text/html")
 
 
 @app.exception_handler(StarletteHTTPException)
 async def _spa_server(req: Request, exc: StarletteHTTPException):
-    if exc.status_code == 404:
-        return FileResponse(f"{build_dir}/index.html", media_type="text/html")
+    if exc.status_code == 404 and frontend_available:
+        return FileResponse(index_file, media_type="text/html")
     else:
         return await http_exception_handler(req, exc)
 
 
-if os.path.isdir(build_dir):
+if frontend_available:
     app.mount(
         "/static/",
-        StaticFiles(directory=build_dir / "static"),
+        StaticFiles(directory=static_dir),
         name="React app static files",
     )
 
