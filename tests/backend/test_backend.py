@@ -1,4 +1,5 @@
 import pytest
+from fastapi.testclient import TestClient
 
 
 @pytest.mark.backend
@@ -18,7 +19,31 @@ def test_workgraph_route(client):
 
 @pytest.mark.backend
 def test_frontend_root_without_assets(client):
-    """Root endpoint returns a helpful error when frontend assets are missing."""
+    """Root endpoint behaves correctly with or without built frontend assets."""
     response = client.get("/")
+    assert response.status_code in {200, 503}
+
+    if response.status_code == 503:
+        assert "frontend assets are missing" in response.json()["detail"].lower()
+    else:
+        assert response.headers["content-type"].startswith("text/html")
+
+
+@pytest.mark.backend
+def test_frontend_root_without_assets_message(monkeypatch, tmp_path):
+    """Simulate missing frontend assets and validate the returned help message."""
+    import importlib
+
+    empty_build = tmp_path / "empty_build"
+    empty_build.mkdir()
+    monkeypatch.setenv("REACT_BUILD_DIR", str(empty_build))
+
+    from aiida_gui.app import api as api_module
+
+    api_module = importlib.reload(api_module)
+
+    with TestClient(api_module.app) as local_client:
+        response = local_client.get("/")
+
     assert response.status_code == 503
     assert "frontend assets are missing" in response.json()["detail"].lower()
