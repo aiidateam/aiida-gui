@@ -1,0 +1,78 @@
+.sidebar {
+  width: 50px;
+  height: 100vh;
+  background-color: #333;
+  padding-top: 20px;
+  position: fixed;
+  transition: width 0.3s;
+  overflow: hidden;
+
+  &:hover {
+    width: 200px;
+
+    nav ul li {
+      opacity: 1;
+    }
+
+    ~ .content {
+      margin-left: 200px;
+    }
+
+    ul li a span {
+      display: inline;
+    }
+  }
+
+  img {
+    width: 30px;
+    cursor: pointer;
+  }
+
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 20px;
+
+    li {
+      padding: 10px;
+
+      a {
+        color: white;
+        text-decoration: none;
+
+        .fa-icon {
+          min-width: 20px;
+        }
+      }
+    }
+  }
+
+  ul li a {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+
+    span {
+      margin-left: 10px;
+      display: none;
+    }
+  }
+}
+
+.logo-container {
+  width: 50px;
+  text-align: center;
+}
+
+.content {
+  margin-left: 50px;
+  padding: 20px;
+  transition: margin-left 0.3s;
+  overflow-x: auto;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+  }
+}

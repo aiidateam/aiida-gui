@@ -1,49 +1,83 @@
-import React, { useState, useEffect, useRef, useMemo} from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import '../App.css';
-import '../rete.css';
-import { createEditor, addControls, removeControls } from '../rete/default';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useParams, useLocation } from "react-router-dom";
+import "../assets/scss/app.scss";
+import "../assets/scss/rete.scss";
+import { createEditor, addControls, removeControls } from "../rete/default";
+import type { WorkgraphData } from "../rete/default";
 import { Button, Switch } from "antd";
-import ProcessBreadcrumbs from './ProcessIndicator'; // Import the ProcessBreadcrumbs component
-import ProcessSummary from './ProcessSummary';
-import ProcessLog from './ProcessLog';
-import TaskDetails from './TaskDetails';
-import NodeDurationGraph from './ProcessDuration'
+import ProcessBreadcrumbs from "./ProcessIndicator"; // Import the ProcessBreadcrumbs component
+import type { ParentProcessEntry } from "./ProcessIndicator";
+import ProcessSummary from "./ProcessSummary";
+import type { ProcessSummaryPayload } from "./ProcessSummary";
+import ProcessLog from "./ProcessLog";
+import TaskDetails from "./TaskDetails";
+import type { TaskNode } from "./TaskDetails";
+import NodeDurationGraph from "./ProcessDuration";
 import {
   PageContainer,
   EditorContainer,
   LayoutAction,
   TopMenu,
   EditorWrapper,
-} from './ProcessItemStyles';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
+} from "./ProcessItemStyles";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Extend the Window interface
 declare global {
   interface Window {
-    editor?: any; //  can replace `any` with a more specific type if available
+    editor?: ReteHandle;
   }
 }
 
+interface WorkflowData extends WorkgraphData {
+  summary: ProcessSummaryPayload;
+  pk: unknown[];
+  parent_workflows?: ParentProcessEntry[];
+}
 
+interface WorkflowStateEntry {
+  state: string;
+}
+
+interface PickedContext {
+  type?: string;
+  data?: {
+    id?: string;
+  };
+}
+
+interface EditorNode {
+  id: string;
+  label: string;
+  selected?: boolean;
+  process?: {
+    pk?: number;
+  };
+}
+
+interface ReteHandle {
+  editor: any;
+  area: any;
+  layout: (animate: boolean) => void | Promise<void>;
+  destroy: () => void;
+}
 
 /* Modify the useRete function to support passing workflow data to createEditor */
-export function useRete<T extends { destroy(): void }>(
-  create: (el: HTMLElement, data: any) => Promise<T>,
-  workFlowData: any
+export function useRete<T extends ReteHandle>(
+  create: (el: HTMLElement, data: WorkflowData) => Promise<T>,
+  workFlowData: WorkflowData,
 ) {
   const [container, setContainer] = useState<null | HTMLElement>(null);
-  const editorRef = useRef<T>();
+  const editorRef = useRef<T | null>(null);
   const [editor, setEditor] = useState<T | null>(null);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (container) {
       if (editorRef.current) {
         editorRef.current.destroy();
-        container.innerHTML = '';
+        container.innerHTML = "";
       }
       create(container, workFlowData).then((value) => {
         editorRef.current = value;
@@ -62,26 +96,32 @@ export function useRete<T extends { destroy(): void }>(
   }, []);
 
   useEffect(() => {
-    if (ref.current) {
-      setContainer(ref.current);
-    }
-  }, [ref.current]);
+    setContainer(ref.current);
+  }, []);
 
   return [ref, editor] as const;
 }
 
-
-
-function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
-  const { pk } = useParams();
+function WorkflowItem({ pathType = "workchain", endPoint = "workchain" }) {
+  const { pk } = useParams<{ pk: string }>();
   const location = useLocation();
 
-  const [workFlowData, setWorkFlowData] = useState({ summary: {}, nodes: {}, links: [], pk: [] });
-  const [ref, editor] = useRete(createEditor, workFlowData);
-  const [selectedNode, setSelectedNode] = useState({ metadata: [], executor: '' });
+  const [workFlowData, setWorkFlowData] = useState<WorkflowData>({
+    summary: {},
+    nodes: {},
+    links: [],
+    pk: [],
+  });
+  const [ref, editor] = useRete<ReteHandle>(createEditor, workFlowData);
+  const [selectedNode, setSelectedNode] = useState<TaskNode>({
+    metadata: [],
+    executor: "",
+  });
   const [showTaskDetails, setShowTaskDetails] = useState(false);
-  const [workFlowHierarchy, setWorkFlowHierarchy] = useState([]);
-  const [selectedView, setSelectedView] = useState('Editor');
+  const [workFlowHierarchy, setWorkFlowHierarchy] = useState<
+    ParentProcessEntry[]
+  >([]);
+  const [selectedView, setSelectedView] = useState("Editor");
   const [realtimeSwitch, setRealtimeSwitch] = useState(false); // State to manage the realtime switch
   const [detailNodeViewSwitch, setDetailNodeViewSwitch] = useState(false); // State to manage the realtime switch
 
@@ -101,58 +141,61 @@ function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
     try {
       const response = await fetch(`${endPoint}-state/${pk}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch state data');
+        throw new Error("Failed to fetch state data");
       }
-      const data = await response.json();
+      const data = (await response.json()) as Record<
+        string,
+        WorkflowStateEntry
+      >;
       // Call changeTitleColor here to update title colors based on the new state data
       changeTitleColor(data);
     } catch (error) {
-      console.error('Error fetching state data:', error);
+      console.error("Error fetching state data:", error);
     }
   };
 
   // Function to change the title color based on the state
-  const changeTitleColor = (stateData: any) => {
+  const changeTitleColor = (stateData: Record<string, WorkflowStateEntry>) => {
     if (editor && editor.editor) {
-      const nodeEditor = editor.editor;
-      const nodes = nodeEditor.getNodes();
       // Find all elements with data-testid="node"
       const nodeElements = document.querySelectorAll('[data-testid="node"]');
-      console.log("stateData: ", stateData)
+      console.log("stateData: ", stateData);
       // Iterate through the elements and update title colors based on state
       nodeElements.forEach((nodeElement) => {
-        const titleElement = nodeElement.querySelector('[data-testid="title"]')  as HTMLElement;
+        const titleElement = nodeElement.querySelector(
+          '[data-testid="title"]',
+        ) as HTMLElement;
         const nodeName = titleElement.textContent;
         if (nodeName && nodeName in stateData) {
-            const nodeState = stateData[nodeName].state.toUpperCase();
-            if (nodeState === 'FINISHED') {
-              titleElement.style.background = 'green';
-            } else if (nodeState === 'RUNNING') {
-              titleElement.style.background = 'orange';
-            } else if (nodeState === 'CREATED') {
-              titleElement.style.background = 'blue';
-            } else if (nodeState === 'PLANNED') {
-              titleElement.style.background = 'gray';
-            } else if (nodeState === 'WAITING') {
-              titleElement.style.background = 'purple'; // Change to the desired color for "waiting"
-            } else if (nodeState === 'KILLED') {
-              titleElement.style.background = 'pink'; // Change to the desired color for "killed"
-            } else if (nodeState === 'PAUSED') {
-              titleElement.style.background = 'yellow'; // Change to the desired color for "paused"
-            } else if (nodeState === 'FAILED') {
-              titleElement.style.background = 'red'; // Change to the desired color for "failed"
-            } else {
-              // Handle any other states or provide a default color
-              titleElement.style.background = 'lightblue'; // Change to the desired default color
-            }
+          const nodeState = stateData[nodeName].state.toUpperCase();
+          if (nodeState === "FINISHED") {
+            titleElement.style.background = "green";
+          } else if (nodeState === "RUNNING") {
+            titleElement.style.background = "orange";
+          } else if (nodeState === "CREATED") {
+            titleElement.style.background = "blue";
+          } else if (nodeState === "PLANNED") {
+            titleElement.style.background = "gray";
+          } else if (nodeState === "WAITING") {
+            titleElement.style.background = "purple"; // Change to the desired color for "waiting"
+          } else if (nodeState === "KILLED") {
+            titleElement.style.background = "pink"; // Change to the desired color for "killed"
+          } else if (nodeState === "PAUSED") {
+            titleElement.style.background = "yellow"; // Change to the desired color for "paused"
+          } else if (nodeState === "FAILED") {
+            titleElement.style.background = "red"; // Change to the desired color for "failed"
+          } else {
+            // Handle any other states or provide a default color
+            titleElement.style.background = "lightblue"; // Change to the desired default color
+          }
         }
-      }
-      )};
-  }
+      });
+    }
+  };
 
   // Setup interval for fetching real-time data when the switch is turned on
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     if (realtimeSwitch) {
       // Fetch data initially
       fetchStateData();
@@ -164,63 +207,67 @@ function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
         clearInterval(intervalId); // Clear the interval when the component unmounts or the switch is turned off
       }
     };
-  }, [realtimeSwitch]); // Depend on the realtimeSwitch, pk, and editor
+  }, [realtimeSwitch, pk, endPoint, editor]); // Depend on the realtimeSwitch, pk, and editor
 
   // Setup interval for fetching real-time data when the switch is turned on
   useEffect(() => {
     if (editor) {
       if (detailNodeViewSwitch) {
-        console.log('Adding controls');
+        console.log("Adding controls");
         addControls(editor.editor, editor.area, workFlowData);
-      }
-      else {
-        console.log('Removing controls');
+      } else {
+        console.log("Removing controls");
         removeControls(editor.editor, editor.area, workFlowData);
       }
       // need to call layout to update the view
       editor?.layout(true);
     }
-    return () => {
-    };
-  }, [detailNodeViewSwitch]); // Depend on the realtimeSwitch, pk, and editor
-
+    return () => {};
+  }, [detailNodeViewSwitch, editor, workFlowData]); // Depend on the realtimeSwitch, pk, and editor
 
   useEffect(() => {
-    let url;
+    let url: string;
     if (subPath) {
       url = `${endPoint}/${pk}/${subPath}`;
     } else {
       url = `${endPoint}/${pk}`;
     }
-    console.log('Fetching workflow data from:', url);
+    console.log("Fetching workflow data from:", url);
     fetch(url)
       .then((response) => response.json())
-      .then((data) => {
+      .then((data: WorkflowData) => {
         setWorkFlowData(data);
-        setWorkFlowHierarchy(data.parent_workflows);
+        setWorkFlowHierarchy(data.parent_workflows || []);
       })
-      .catch((error) => console.error('Error fetching data:', error));
-  }, [pk, subPath]); // Only re-run when `pk` changes
+      .catch((error) => console.error("Error fetching data:", error));
+  }, [pk, subPath, endPoint]); // Only re-run when `pk` changes
 
   // Setup editor event listener
   useEffect(() => {
     if (editor) {
-      const handleNodePick = async (context: any) => {
-        if (!context || typeof context !== 'object' || !('type' in context)) return context;
+      const handleNodePick = async (context: unknown) => {
+        if (!context || typeof context !== "object" || !("type" in context)) {
+          return context;
+        }
 
-        if (context.type === 'nodepicked') {
-          const pickedId = context.data.id;
+        const pickContext = context as PickedContext;
+
+        if (pickContext.type === "nodepicked") {
+          const pickedId = pickContext.data?.id;
+          if (!pickedId) {
+            return context;
+          }
           const node = editor.editor.getNode(pickedId);
 
           try {
             // Fetch data from the backend
-            let url;
+            let url: string;
             if (subPath) {
               url = `/api/task/${pk}/${subPath}/${node.label}`;
             } else {
               url = `/api/task/${pk}/${node.label}`;
             }
-            console.log('Fetching data from:', url);
+            console.log("Fetching data from:", url);
             const response = await fetch(url);
             if (!response.ok) {
               const errorText = await response.text(); // Read the error response
@@ -228,11 +275,11 @@ function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
               throw new Error(`Failed to fetch data: ${errorText}`);
             }
 
-            const data = await response.json();
+            const data = (await response.json()) as TaskNode;
             // Update the component state with the fetched data
             setSelectedNode(data);
           } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error("Error fetching data:", error);
           }
 
           setShowTaskDetails(true);
@@ -242,117 +289,129 @@ function WorkflowItem({pathType = 'workchain', endPoint = 'workchain'}) {
 
       editor.area.addPipe(handleNodePick);
       /* Add arrange node, maybe there is a better plance to add */
-      editor?.layout(true)
-
+      editor?.layout(true);
 
       // Cleanup function to remove the event listener
       // return () => {
       // editor.area.removePipe(handleNodePick);
       // };
     }
-  }, [editor]); // Depend on a stable reference of `editor`, `pk`, and `node_name`
+  }, [editor, pk, subPath]); // Depend on a stable reference of `editor`, `pk`, and `node_name`
 
   const handleTaskDetailsClose = () => {
     setShowTaskDetails(false);
   };
 
   // Memoize the editor to prevent re-creation
-  const editorComponent = useMemo(() => (
-      <div ref={ref} style={{ height: 'calc(100% - 2em)', width: '100%' }}></div>
-  ), [workFlowHierarchy, editor, showTaskDetails, selectedNode]); // Specify dependencies
-
+  const editorComponent = useMemo(
+    () => (
+      <div
+        ref={ref}
+        style={{ height: "calc(100% - 2em)", width: "100%" }}
+      ></div>
+    ),
+    [workFlowHierarchy, editor, showTaskDetails, selectedNode],
+  ); // Specify dependencies
 
   const handleTaskAction = async (action: string) => {
     if (editor && editor.editor) {
-        const selectedNodes = editor.editor.getNodes().filter((node: any) => node.selected);
-        const nodePayload = selectedNodes.map((node: any) => ({
-          name: node.label,
-          pk: node.process?.pk, // use optional chaining in case process is undefined
-        }));
-        console.log(nodePayload); // Good for debugging
+      const selectedNodes = editor.editor
+        .getNodes()
+        .filter((node: EditorNode) => node.selected);
+      const nodePayload = selectedNodes.map((node: EditorNode) => ({
+        name: node.label,
+        pk: node.process?.pk, // use optional chaining in case process is undefined
+      }));
+      console.log(nodePayload); // Good for debugging
 
-        try {
-            const response = await fetch(`/api/process/tasks/${action}/${pk}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(nodePayload), // Correct the body to match expected structure
-            });
+      try {
+        const response = await fetch(`/api/process/tasks/${action}/${pk}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(nodePayload), // Correct the body to match expected structure
+        });
 
-            const data = await response.json();
-            if (!response.ok) {
-              // If response not OK, throw the backend message
-              throw new Error(data.detail || `Failed to perform ${action}`);
-            }
-            console.log(data.message); // Display backend response message
-            toast.success(`${action} action performed successfully on nodes.`);
-        } catch (error: any) {
-            console.error('Error performing node action:', error);
-            toast.error(`Error performing ${action}: ${error.message}`);
+        const data = await response.json();
+        if (!response.ok) {
+          // If response not OK, throw the backend message
+          throw new Error(data.detail || `Failed to perform ${action}`);
         }
+        console.log(data.message); // Display backend response message
+        toast.success(`${action} action performed successfully on nodes.`);
+      } catch (error) {
+        const typedError = error as Error;
+        console.error("Error performing node action:", error);
+        toast.error(`Error performing ${action}: ${typedError.message}`);
+      }
     } else {
-        toast.error("No nodes selected or editor is not available");
+      toast.error("No nodes selected or editor is not available");
     }
-};
+  };
 
-  const handlePause = () => handleTaskAction('pause');
-  const handlePlay = () => handleTaskAction('play');
-  const handleKill = () => handleTaskAction('kill');
+  const handlePause = () => handleTaskAction("pause");
+  const handlePlay = () => handleTaskAction("play");
+  const handleKill = () => handleTaskAction("kill");
 
   return (
-      <PageContainer>
-        <TopMenu>
-          <Button onClick={() => setSelectedView('Editor')}>Editor</Button>
-          <Button onClick={() => setSelectedView('Summary')}>Summary</Button>
-          <Button onClick={() => setSelectedView('Log')}>Log</Button>
-          <Button onClick={() => setSelectedView('Time')}>Time</Button>
-        </TopMenu>
-          <ToastContainer />
-          {selectedView === 'Summary' && <ProcessSummary summary={workFlowData.summary} />}
-          {selectedView === 'Log' && <ProcessLog id={pk} />}
-          {selectedView === 'Time' && <NodeDurationGraph id={pk}/>}
-          <EditorWrapper visible={selectedView === 'Editor'}>
-          <ProcessBreadcrumbs parentProcesses={workFlowHierarchy} />
-            <EditorContainer>
-              <LayoutAction>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ marginRight: '20px' }}>
-                  <Switch
-                    checked={realtimeSwitch}
-                    onChange={(checked) => setRealtimeSwitch(checked)}
-                    style={{ marginRight: '10px' }}
-                    className="realtime-switch"
-                  />Real-time state
-                </div>
-                <div>
-                  <Switch
-                    checked={detailNodeViewSwitch}
-                    onChange={(checked) => setDetailNodeViewSwitch(checked)}
-                    style={{ marginRight: '10px' }}
-                    className="detail-switch"
-                  />Detail task view
-                </div>
+    <PageContainer>
+      <TopMenu>
+        <Button onClick={() => setSelectedView("Editor")}>Editor</Button>
+        <Button onClick={() => setSelectedView("Summary")}>Summary</Button>
+        <Button onClick={() => setSelectedView("Log")}>Log</Button>
+        <Button onClick={() => setSelectedView("Time")}>Time</Button>
+      </TopMenu>
+      <ToastContainer />
+      {selectedView === "Summary" && (
+        <ProcessSummary summary={workFlowData.summary} />
+      )}
+      {selectedView === "Log" && <ProcessLog id={pk} />}
+      {selectedView === "Time" && <NodeDurationGraph id={pk} />}
+      <EditorWrapper visible={selectedView === "Editor"}>
+        <ProcessBreadcrumbs parentProcesses={workFlowHierarchy} />
+        <EditorContainer>
+          <LayoutAction>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ marginRight: "20px" }}>
+                <Switch
+                  checked={realtimeSwitch}
+                  onChange={(checked) => setRealtimeSwitch(checked)}
+                  style={{ marginRight: "10px" }}
+                  className="realtime-switch"
+                />
+                Real-time state
               </div>
               <div>
-                <Button onClick={() => editor?.layout(true)}>Arrange</Button>
-                <Button onClick={handlePause}>Pause</Button>
-                <Button onClick={handlePlay}>Play</Button>
-                <Button onClick={handleKill}>Kill</Button>
+                <Switch
+                  checked={detailNodeViewSwitch}
+                  onChange={(checked) => setDetailNodeViewSwitch(checked)}
+                  style={{ marginRight: "10px" }}
+                  className="detail-switch"
+                />
+                Detail task view
               </div>
-              </LayoutAction>
-              {showTaskDetails && (
-              <TaskDetails
+            </div>
+            <div>
+              <Button onClick={() => editor?.layout(true)}>Arrange</Button>
+              <Button onClick={handlePause}>Pause</Button>
+              <Button onClick={handlePlay}>Play</Button>
+              <Button onClick={handleKill}>Kill</Button>
+            </div>
+          </LayoutAction>
+          {showTaskDetails && (
+            <TaskDetails
               selectedNode={selectedNode}
               parentPk={pk}
               parentPath={subPath}
               onClose={handleTaskDetailsClose}
-              setShowTaskDetails={setShowTaskDetails} />
-            )}
-            </EditorContainer>
-            {editorComponent}
-          </EditorWrapper>
-      </PageContainer>
+              setShowTaskDetails={setShowTaskDetails}
+            />
+          )}
+        </EditorContainer>
+        {editorComponent}
+      </EditorWrapper>
+    </PageContainer>
   );
 }
 
