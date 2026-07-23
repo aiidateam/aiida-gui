@@ -37,7 +37,9 @@ def test_process(page):
     expect(page.locator(".MuiPagination-root")).to_be_visible()
 
     # Check if at least one row is visible
-    page.locator('[data-field="process_label"]').get_by_text("MultiplyAddWorkChain").hover()
+    page.locator('[data-field="process_label"]').get_by_text(
+        "MultiplyAddWorkChain"
+    ).hover()
     rows = page.get_by_role("row").all()
     assert len(rows) >= 2
 
@@ -57,7 +59,9 @@ def test_process_item(page, ran_workchain):
     gui_node = page.get_by_text(task_name)
 
     # Check if background color changes
-    gui_node_color = gui_node.evaluate("element => window.getComputedStyle(element).backgroundColor")
+    gui_node_color = gui_node.evaluate(
+        "element => window.getComputedStyle(element).backgroundColor"
+    )
     assert gui_node_color == "rgba(0, 0, 0, 0)"
 
     page.locator(".realtime-switch").click()

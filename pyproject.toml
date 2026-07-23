@@ -49,8 +49,7 @@ docs = [
     "nbsphinx",
 ]
 pre-commit = [
-    "pre-commit~=2.2",
-    "pylint~=2.17.4",
+    'pre-commit~=3.5',
 ]
 tests = [
     'pgtest~=1.3',

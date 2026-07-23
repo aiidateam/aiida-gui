@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Declaration of FastAPI router for daemon endpoints."""
+
 from __future__ import annotations
 
 import typing as t

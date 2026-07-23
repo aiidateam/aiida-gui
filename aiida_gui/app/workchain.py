@@ -24,7 +24,6 @@ async def read_workchain(id: int):
     from .utils import get_node_summary, get_workchain_data
 
     try:
-
         node = orm.load_node(id)
 
         content = get_workchain_data(node)

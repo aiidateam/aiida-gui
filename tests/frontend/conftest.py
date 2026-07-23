@@ -15,7 +15,9 @@ import errno
 import traceback
 
 
-DEFAULT_PLAYWRIGHT_TIMEOUT_MS = int(os.environ.get("PYTEST_PLAYWRIGHT_TIMEOUT_MS", "15000"))
+DEFAULT_PLAYWRIGHT_TIMEOUT_MS = int(
+    os.environ.get("PYTEST_PLAYWRIGHT_TIMEOUT_MS", "15000")
+)
 
 
 def create_workchain_node(profile_name: str, code_pk: int, queue):
@@ -96,7 +98,9 @@ def ran_workchain(aiida_profile, add_code):
 
     result = queue.get_nowait()
     if not result.get("ok", False):
-        msg = "Failed to create test workchain:\n" + result.get("traceback", "unknown error")
+        msg = "Failed to create test workchain:\n" + result.get(
+            "traceback", "unknown error"
+        )
         raise RuntimeError(msg)
 
     return load_node(result["pk"])
