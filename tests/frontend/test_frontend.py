@@ -4,56 +4,52 @@ from playwright.sync_api import expect
 
 
 @pytest.mark.frontend
-def test_homepage(web_server, page):
+@pytest.mark.usefixtures("web_server")
+def test_homepage(page):
     page.goto("")
     assert page.title() == "AiiDA GUI"
 
     # Check if at least one of the links to Process is visible
     process_link_locator = page.locator("a[href='/process']")
 
-    expect(process_link_locator.first).to_be_visible(
-        timeout=10000
-    )  # Optional: increase timeout if needed
+    expect(process_link_locator.first).to_be_visible()
 
 
 @pytest.mark.frontend
-def test_process(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server", "ran_workchain")
+def test_process(page):
     page.goto("")
     page.click('a[href="/process"]')
+    page.wait_for_url("**/process")
 
     # Check for Process Table Header
-    assert page.get_by_role("heading", name="Process").is_visible()
+    expect(page.get_by_role("heading", name="Process")).to_be_visible()
 
     # Check for Table Headers in DataGrid
-    expect(page.get_by_role("columnheader", name="PK")).to_be_visible(timeout=10000)
-    expect(page.get_by_role("columnheader", name="Created")).to_be_visible(
-        timeout=10000
-    )
-    expect(page.get_by_role("columnheader", name="Process label")).to_be_visible(
-        timeout=10000
-    )
-    expect(page.get_by_role("columnheader", name="State")).to_be_visible(timeout=10000)
+    expect(page.get_by_role("columnheader", name="PK")).to_be_visible()
+    expect(page.get_by_role("columnheader", name="Created")).to_be_visible()
+    expect(page.get_by_role("columnheader", name="Process label")).to_be_visible()
+    expect(page.get_by_role("columnheader", name="State")).to_be_visible()
     # I don't know why the Actions column is not visible
     # assert page.get_by_role("columnheader", name="Actions").is_visible()
 
     # Check pagination controls
-    assert page.locator(".MuiPagination-root").is_visible()
+    expect(page.locator(".MuiPagination-root")).to_be_visible()
 
     # Check if at least one row is visible
-    page.locator('[data-field="process_label"]').get_by_text(
-        "MultiplyAddWorkChain"
-    ).hover()
+    page.locator('[data-field="process_label"]').get_by_text("MultiplyAddWorkChain").hover()
     rows = page.get_by_role("row").all()
     assert len(rows) >= 2
 
 
 @pytest.mark.frontend
-def test_process_item(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server")
+def test_process_item(page, ran_workchain):
     page.goto("/process/")
     page.get_by_role("link", name=str(ran_workchain.pk), exact=True).click()
 
     task_name = f"CALL-{ran_workchain.called_descendants[0].pk}"
-    expect(page.get_by_text(task_name)).to_be_visible(timeout=5000)  # 5s timeout
+    expect(page.get_by_text(task_name)).to_be_visible()
 
     # Click "Arrange" button
     page.get_by_role("button", name="Arrange").click()
@@ -61,21 +57,11 @@ def test_process_item(web_server, page, ran_workchain):
     gui_node = page.get_by_text(task_name)
 
     # Check if background color changes
-    gui_node_color = gui_node.evaluate(
-        "element => window.getComputedStyle(element).backgroundColor"
-    )
+    gui_node_color = gui_node.evaluate("element => window.getComputedStyle(element).backgroundColor")
     assert gui_node_color == "rgba(0, 0, 0, 0)"
 
     page.locator(".realtime-switch").click()
-    page.wait_for_function(
-        "selector => !!document.querySelector(selector)",
-        arg="div.title[style='background: green;']",
-    )
-
-    gui_node_color = gui_node.evaluate(
-        "element => window.getComputedStyle(element).backgroundColor"
-    )
-    assert gui_node_color == "rgb(0, 128, 0)"
+    expect(gui_node).to_have_css("background-color", "rgb(0, 128, 0)")
 
     # Check if clicking a node opens the sidebar
     page.locator(".detail-switch").click()
@@ -110,20 +96,18 @@ def test_process_item(web_server, page, ran_workchain):
 
     # Verify that Time  works
     page.get_by_role("button", name="Time").click()
-    row = page.locator(".rct-sidebar-row ").get_by_text(task_name)
-    row.wait_for(state="visible")
-    assert row.is_visible()
+    expect(page.get_by_role("heading", name="Node Process Timeline")).to_be_visible()
+    expect(page.locator("body")).to_contain_text(task_name)
 
 
 @pytest.mark.frontend
-def test_datanode_item(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server")
+def test_datanode_item(page, ran_workchain):
     page.goto("/datanode/")
     # Check for Table Headers in DataGrid
-    expect(page.get_by_role("columnheader", name="PK")).to_be_visible(timeout=10000)
-    expect(page.get_by_role("columnheader", name="Created")).to_be_visible(
-        timeout=10000
-    )
-    expect(page.get_by_role("columnheader", name="Label")).to_be_visible(timeout=10000)
+    expect(page.get_by_role("columnheader", name="PK")).to_be_visible()
+    expect(page.get_by_role("columnheader", name="Created")).to_be_visible()
+    expect(page.get_by_role("columnheader", name="Label")).to_be_visible()
 
     data_node_pk = ran_workchain.called_descendants[0].inputs.x.pk
 
@@ -139,7 +123,8 @@ def test_datanode_item(web_server, page, ran_workchain):
 
 
 @pytest.mark.frontend
-def test_daemon(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server", "ran_workchain")
+def test_daemon(page):
     page.goto("/daemon/")
     # Verify that only one row is visible
     expect(page.locator(":nth-match(tr, 1)")).to_be_visible()
@@ -173,7 +158,8 @@ def test_daemon(web_server, page, ran_workchain):
 
 
 @pytest.mark.frontend
-def test_process_delete(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server", "ran_workchain")
+def test_process_delete(page):
     """Tests deleting the last process in DataGrid, accounting for pagination."""
     page.goto("/process")
 
@@ -199,7 +185,8 @@ def test_process_delete(web_server, page, ran_workchain):
 
 
 @pytest.mark.frontend
-def test_datanode_delete(web_server, page, ran_workchain):
+@pytest.mark.usefixtures("web_server", "ran_workchain")
+def test_datanode_delete(page):
     """Tests deleting the last DataNode in DataGrid, accounting for pagination."""
     page.goto("/datanode")
 

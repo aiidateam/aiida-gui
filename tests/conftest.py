@@ -1,29 +1,39 @@
 import pytest
+from aiida.orm import Computer, InstalledCode, load_computer, load_code
+from aiida.common.exceptions import NotExistent
 
 pytest_plugins = "aiida.tools.pytest_fixtures"
 
 
-@pytest.fixture
-def fixture_localhost(aiida_localhost):
-    """Return a localhost `Computer`."""
-    localhost = aiida_localhost
+@pytest.fixture(scope="session")
+def fixture_localhost(aiida_profile):
+    """Return a session-scoped localhost Computer."""
+    try:
+        localhost = load_computer("localhost")
+    except NotExistent:
+        localhost = Computer(
+            label="localhost",
+            hostname="localhost",
+            transport_type="core.local",
+            scheduler_type="core.direct",
+            workdir="/tmp/aiida",
+        ).store()
+
+        localhost.configure()
+
     localhost.set_default_mpiprocs_per_machine(1)
     return localhost
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def add_code(fixture_localhost):
-    from aiida.orm import InstalledCode, load_code
-    from aiida.common import NotExistent
-
+    """Return a session-scoped arithmetic.add code."""
     try:
-        code = load_code("add@localhost")
+        return load_code("add@localhost")
     except NotExistent:
-        code = InstalledCode(
+        return InstalledCode(
             label="add",
             computer=fixture_localhost,
             filepath_executable="/bin/bash",
-            default_calc_job_plugin="arithmetic.add",
-        )
-        code.store()
-    return code
+            default_calc_job_plugin="core.arithmetic.add",
+        ).store()

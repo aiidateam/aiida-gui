@@ -1,148 +1,158 @@
 import pytest
-from playwright.sync_api import sync_playwright
 from playwright.sync_api import expect
 
 from aiida.engine import run_get_node
+from aiida.orm import load_code, load_node
 from aiida.workflows.arithmetic.multiply_add import MultiplyAddWorkChain
 import uvicorn
 
-from multiprocessing import Process, Value
+from multiprocessing import get_context
 
-import contextlib
-import threading
 import time
 import os
 import socket
 import errno
+import traceback
 
 
-################################
-# Utilities for frontend tests #
-################################
+DEFAULT_PLAYWRIGHT_TIMEOUT_MS = int(os.environ.get("PYTEST_PLAYWRIGHT_TIMEOUT_MS", "15000"))
 
 
-class UvicornTestServer(uvicorn.Server):
+def create_workchain_node(profile_name: str, code_pk: int, queue):
+    """Create a workchain in a separate process and return the created node PK."""
+    try:
+        from aiida import load_profile
+
+        load_profile(profile_name)
+        code = load_code(code_pk)
+        _, node = run_get_node(MultiplyAddWorkChain, x=2, y=3, z=4, code=code)
+        queue.put({"ok": True, "pk": node.pk})
+    except Exception:  # pragma: no cover - defensive path for subprocess failures
+        queue.put({"ok": False, "traceback": traceback.format_exc()})
+
+
+def run_uvicorn_web_server(**uvicorn_configuration):
+    """Run the uvicorn web server in a dedicated process.
+
+    Running uvicorn directly in this process avoids running event loops from
+    non-main threads, which is problematic with newer async backends.
     """
-    Suggested way to start a server in a background by developers
-    https://github.com/encode/uvicorn/discussions/1103#discussioncomment-941726
-    """
-
-    def install_signal_handlers(self):
-        pass
-
-    @contextlib.contextmanager
-    def run_in_thread(self):
-        thread = threading.Thread(target=self.run)
-        thread.start()
-        try:
-            print("wait for started")
-            while not self.started:
-                time.sleep(1e-3)
-            yield
-        finally:
-            self.should_exit = True
-            thread.join()
+    uvicorn.run(**uvicorn_configuration)
 
 
-def run_uvicorn_web_server(
-    web_server_started, stop_web_server, **uvicorn_configuration
-):
-    config = uvicorn.Config(**uvicorn_configuration)
-    uvicorn_web_server = UvicornTestServer(config=config)
-    with uvicorn_web_server.run_in_thread():
-        with web_server_started.get_lock():
-            web_server_started.value = 1
-        print("Wait for signal to stop web server.")
-        while not stop_web_server.value:
-            time.sleep(1e-3)
+def wait_for_server(host: str, port: int, timeout: float = 30.0) -> None:
+    """Wait until the TCP port is accepting connections."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
+            test_socket.settimeout(0.5)
+            if test_socket.connect_ex((host, port)) == 0:
+                return
+        time.sleep(0.1)
+
+    msg = f"Web server at {host}:{port} did not become ready within {timeout} seconds."
+    raise RuntimeError(msg)
 
 
 ###############################
-# Fixtuers for frontend tests #
+# Fixtures for frontend tests #
 ###############################
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def aiida_profile(aiida_config, aiida_profile_factory):
     """Create and load a profile with RabbitMQ as broker for frontend tests."""
     with aiida_profile_factory(aiida_config, broker_backend="core.rabbitmq") as profile:
         yield profile
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def set_backend_server_settings(aiida_profile):
     os.environ["AIIDA_GUI_PROFILE"] = aiida_profile.name
 
 
-@pytest.fixture
-def ran_workchain(
-    aiida_profile,
-    add_code,
-):
+@pytest.fixture(scope="session")
+def ran_workchain(aiida_profile, add_code):
     """A workgraph with calcfunction."""
-    result, node = run_get_node(MultiplyAddWorkChain, x=2, y=3, z=4, code=add_code)
-    return node
+    mp_context = get_context("spawn")
+    queue = mp_context.Queue()
+    process = mp_context.Process(
+        target=create_workchain_node,
+        args=(aiida_profile.name, add_code.pk, queue),
+    )
+
+    process.start()
+    process.join(timeout=120)
+
+    if process.is_alive():
+        process.terminate()
+        process.join(timeout=10)
+        msg = "Timed out while creating test workchain in subprocess."
+        raise RuntimeError(msg)
+
+    if process.exitcode != 0:
+        msg = f"Workchain subprocess exited with code {process.exitcode}."
+        raise RuntimeError(msg)
+
+    result = queue.get_nowait()
+    if not result.get("ok", False):
+        msg = "Failed to create test workchain:\n" + result.get("traceback", "unknown error")
+        raise RuntimeError(msg)
+
+    return load_node(result["pk"])
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def uvicorn_configuration():
     return {
         "app": "aiida_gui.app.api:app",
         "host": "127.0.0.1",
         "port": 8000,
         "log_level": "info",
-        "workers": 2,
+        "workers": 1,
     }
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def web_server(set_backend_server_settings, uvicorn_configuration):
-    from ctypes import c_int8
-
-    web_server_started = Value(c_int8, 0)
-    stop_web_server = Value(c_int8, 0)
-
     test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = uvicorn_configuration["port"]
+    host = uvicorn_configuration["host"]
     try:
-        test_socket.bind(("localhost", port))
+        test_socket.bind((host, port))
     except socket.error as err:
         if err.errno == errno.EADDRINUSE:
             raise RuntimeError(
-                f"Port {port} is already in use. Please unbind the port, "
-                "so we can start a web server for the tests."
+                f"Port {port} is already in use. Please unbind the port, so we can start a web server for the tests."
             )
-        else:
-            raise err
+        raise
 
     test_socket.close()
 
-    web_server_proc = Process(
+    mp_context = get_context("spawn")
+    web_server_proc = mp_context.Process(
         target=run_uvicorn_web_server,
-        args=(web_server_started, stop_web_server),
         kwargs=uvicorn_configuration,
     )
 
     web_server_proc.start()
-
-    print("Wait for server being started.")
-    while not web_server_started.value:
-        time.sleep(1e-3)
+    wait_for_server(host, port)
 
     print("Web server started.")
     yield web_server_proc
 
-    with stop_web_server.get_lock():
-        stop_web_server.value = 1
-
-    web_server_proc.join()
+    web_server_proc.terminate()
+    web_server_proc.join(timeout=10)
+    if web_server_proc.is_alive():
+        web_server_proc.kill()
+        web_server_proc.join(timeout=5)
     web_server_proc.close()
     print("Web server stopped.")
 
 
-# Define a fixture for the browser
-@pytest.fixture(scope="module")
-def browser():
+@pytest.fixture(scope="session")
+def browser_type_launch_args(browser_type_launch_args):
+    """Configure launch options for pytest-playwright browser fixture."""
     pytest_playwright_headless = os.environ.get("PYTEST_PLAYWRIGHT_HEADLESS", "yes")
     if pytest_playwright_headless == "yes":
         headless = True
@@ -154,19 +164,25 @@ def browser():
             'please use "yes" or "no"'
         )
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        yield browser
-        browser.close()
+    return {
+        **browser_type_launch_args,
+        "headless": headless,
+    }
 
 
-# Define a fixture for the page
-@pytest.fixture(scope="module")
-def page(browser):
-    with browser.new_context(base_url="http://localhost:8000") as context:
-        # open a new tab/page in that context
-        with context.new_page() as page:
-            page.set_default_timeout(5_000)
-            page.set_default_navigation_timeout(5_000)
-            expect.set_options(timeout=5_000)
-            yield page
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    """Set a base URL for page.goto("") and relative navigation."""
+    return {
+        **browser_context_args,
+        "base_url": "http://localhost:8000",
+    }
+
+
+@pytest.fixture(autouse=True)
+def configure_page(page, web_server):
+    """Apply common page timeout options for frontend browser tests."""
+    page.set_default_timeout(DEFAULT_PLAYWRIGHT_TIMEOUT_MS)
+    page.set_default_navigation_timeout(DEFAULT_PLAYWRIGHT_TIMEOUT_MS)
+    expect.set_options(timeout=DEFAULT_PLAYWRIGHT_TIMEOUT_MS)
+    yield
