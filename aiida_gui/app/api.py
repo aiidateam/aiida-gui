@@ -4,7 +4,6 @@ from aiida.manage import manager
 from aiida_gui.app.workchain import router as workchain_router
 from aiida_gui.app.task import router as task_router
 from aiida_gui.app.process_node import router as process_router
-from aiida_gui.app.daemon import router as daemon_router
 from aiida_gui.app.data_node import router as datanode_router
 from aiida_gui.app.group_node import router as groupnode_router
 from fastapi.staticfiles import StaticFiles
@@ -23,16 +22,18 @@ class BackendSettings(BaseSettings):
     """
     Settings can be set by setting the environment variables in upper case.
     For example for setting `aiida_gui_profile` one has to export
-    the evironment variable `AIIDA_GUI_PROFILE`.
+    the environment variable `AIIDA_GUI_PROFILE`.
     """
 
     aiida_gui_profile: str = ""  # if empty aiida uses default profile
+    aiida_restapi_base_url: str = "http://127.0.0.1:8000"
+    aiida_restapi_prefix: str = "/v0"
 
 
-backend_settings = BackendSettings()
+app_settings = BackendSettings()
 
 app = FastAPI()
-manager.get_manager().load_profile(backend_settings.aiida_gui_profile)
+manager.get_manager().load_profile(app_settings.aiida_gui_profile)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,7 +62,6 @@ app.include_router(task_router)
 app.include_router(process_router)
 app.include_router(datanode_router)
 app.include_router(groupnode_router)
-app.include_router(daemon_router)
 mount_plugins(app)
 
 
@@ -71,8 +71,8 @@ async def debug() -> dict:
 
 
 @app.get("/backend-setting")
-async def backend_settings():
-    return backend_settings
+async def get_backend_settings() -> dict:
+    return app_settings.model_dump()
 
 
 # Integrating React build into a FastAPI application and serving the build (HTML, CSS, JavaScript) as static files
@@ -98,10 +98,7 @@ frontend_available = index_file.is_file() and static_dir.is_dir()
 async def serve_frontend_root():
     """Serve the frontend root page when built assets are available."""
     if not frontend_available:
-        msg = (
-            "AiiDA GUI frontend assets are missing. "
-            "Build them with: `cd frontend && npm install && npm run build`."
-        )
+        msg = "AiiDA GUI frontend assets are missing. Build them with: `cd frontend && npm install && npm run build`."
         raise StarletteHTTPException(status_code=503, detail=msg)
     return FileResponse(index_file, media_type="text/html")
 
@@ -121,6 +118,10 @@ if frontend_available:
         name="React app static files",
     )
 
+    ##################
+    # PLUGIN SUPPORT #
+    ##################
+
     @app.get("/react-shim.js", include_in_schema=False)
     async def react_shim():
         path = build_dir / "react-shim.js"
@@ -131,7 +132,8 @@ if frontend_available:
     @app.get("/react-jsx-runtime-shim.js", include_in_schema=False)
     async def react_jsx_runtime_shim():
         return FileResponse(
-            build_dir / "react-jsx-runtime-shim.js", media_type="application/javascript"
+            build_dir / "react-jsx-runtime-shim.js",
+            media_type="application/javascript",
         )
 
     @app.get("/react-router-dom-shim.js", include_in_schema=False)

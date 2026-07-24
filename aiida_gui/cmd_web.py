@@ -36,13 +36,37 @@ def cli():
     help="Enable auto-reloading when files change (useful for development).",
 )
 @click.option(
+    "--port",
+    type=int,
+    default=3000,
+    show_default=True,
+    envvar="AIIDA_GUI_PORT",
+    help="Port to run the web application on.",
+)
+@click.option(
+    "--aiida-restapi-base-url",
+    type=str,
+    default="http://127.0.0.1:8000",
+    show_default=True,
+    envvar="AIIDA_RESTAPI_BASE_URL",
+    help="Base URL of the AiiDA REST API consumed by the GUI frontend.",
+)
+@click.option(
+    "--aiida-restapi-prefix",
+    type=str,
+    default="/v0",
+    show_default=True,
+    envvar="AIIDA_RESTAPI_PREFIX",
+    help="Path prefix of the AiiDA REST API.",
+)
+@click.option(
     "--background",
     "-b",
     is_flag=True,
     default=False,
     help="Run the web application in the background and detach from terminal.",
 )
-def start(watch, background):
+def start(watch, port, aiida_restapi_base_url, aiida_restapi_prefix, background):
     """Start the web application (FastAPI backend)."""
     pid_file_path = get_pid_file_path()
     command = [
@@ -51,21 +75,26 @@ def start(watch, background):
         "--host",
         "127.0.0.1",
         "--port",
-        "8000",
+        str(port),
     ]
 
     if watch:
         command.append("--reload")
         click.echo("Watch mode enabled: The application will reload on file changes.")
     else:
-        click.echo(
-            "Watch mode disabled: The application will not reload on file changes."
-        )
+        click.echo("Watch mode disabled: The application will not reload on file changes.")
+
+    environment = os.environ.copy()
+    environment["AIIDA_RESTAPI_BASE_URL"] = aiida_restapi_base_url
+    environment["AIIDA_RESTAPI_PREFIX"] = aiida_restapi_prefix
+    click.echo(
+        f"Configured REST API target: {environment['AIIDA_RESTAPI_BASE_URL']}{environment['AIIDA_RESTAPI_PREFIX']}"
+    )
 
     if background:
         click.echo("Starting the web application in background...")
         # Launch uvicorn in the background
-        backend_process = subprocess.Popen(command)
+        backend_process = subprocess.Popen(command, env=environment)
         # Write the PID into our file for later stop
         with open(pid_file_path, "w") as pid_file:
             pid_file.write(f"backend:{backend_process.pid}\n")
@@ -74,7 +103,7 @@ def start(watch, background):
         click.echo("Starting the web application in foreground. Press Ctrl+C to stop.")
         try:
             # Block until the process is terminated
-            subprocess.call(command)
+            subprocess.call(command, env=environment)
         except KeyboardInterrupt:
             click.echo("\nWeb backend terminated by user.")
 

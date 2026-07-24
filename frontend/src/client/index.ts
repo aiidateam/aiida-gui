@@ -1,0 +1,1 @@
+export { getAiidaRestClient } from "./aiidaRestClient";
