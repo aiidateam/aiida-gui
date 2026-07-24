@@ -11,7 +11,7 @@ interface DaemonWorker {
   started: number;
 }
 
-type DaemonAction = "start" | "stop" | "increase" | "decrease";
+type DaemonAction = "start" | "stop" | "restart" | "increase" | "decrease";
 
 export default function Daemon() {
   const [workers, setWorkers] = useState<DaemonWorker[]>([]);
@@ -39,9 +39,11 @@ export default function Daemon() {
         await restApiClient.daemon.start();
       } else if (action === "stop") {
         await restApiClient.daemon.stop();
+      } else if (action === "restart") {
+        await restApiClient.daemon.restart();
       } else if (action === "increase") {
         await restApiClient.daemon.increase();
-      } else {
+      } else if (action === "decrease") {
         await restApiClient.daemon.decrease();
       }
 
@@ -93,6 +95,14 @@ export default function Daemon() {
         }}
       >
         Stop Daemon
+      </button>
+      <button
+        className="button button-restart"
+        onClick={() => {
+          void dispatchAction("restart");
+        }}
+      >
+        Restart Daemon
       </button>
       <button
         className="button button-adjust"
