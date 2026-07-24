@@ -18,7 +18,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.169.0",
-    "aiida-rest-client": "^0.1.0",
+    "aiida-rest-client": "^0.2.0",
     "antd": "^6.5.1",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",

@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { useEffect, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { getAiidaRestClient } from "../client/aiidaRestClient";
-
-interface DaemonWorker {
-  pid: number;
-  mem: number;
-  cpu: number;
-  started: number;
-}
+import {
+  DaemonWorker,
+  getAiidaRestClient,
+  JsonApiError,
+} from "../client/aiidaRestClient";
 
 type DaemonAction = "start" | "stop" | "restart" | "increase" | "decrease";
 
@@ -18,8 +15,8 @@ export default function Daemon() {
 
   const fetchWorkers = async () => {
     try {
-      const restApiClient = await getAiidaRestClient();
-      const data = await restApiClient.daemon.worker();
+      const aiidaRestClient = await getAiidaRestClient();
+      const data = await aiidaRestClient.daemon.worker();
       setWorkers(Object.values(data));
     } catch (error) {
       console.error("Failed to fetch workers:", error);
@@ -34,24 +31,26 @@ export default function Daemon() {
 
   const dispatchAction = async (action: DaemonAction) => {
     try {
-      const restApiClient = await getAiidaRestClient();
+      const aiidaRestClient = await getAiidaRestClient();
       if (action === "start") {
-        await restApiClient.daemon.start();
+        await aiidaRestClient.daemon.start();
       } else if (action === "stop") {
-        await restApiClient.daemon.stop();
+        await aiidaRestClient.daemon.stop();
       } else if (action === "restart") {
-        await restApiClient.daemon.restart();
+        await aiidaRestClient.daemon.restart();
       } else if (action === "increase") {
-        await restApiClient.daemon.increase();
+        await aiidaRestClient.daemon.increase();
       } else if (action === "decrease") {
-        await restApiClient.daemon.decrease();
+        await aiidaRestClient.daemon.decrease();
       }
 
       toast.success(`Daemon action ${action} succeeded`);
       await fetchWorkers();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Daemon operation failed";
+        error instanceof JsonApiError
+          ? error.message
+          : "Daemon operation failed";
       toast.error(message);
     }
   };

@@ -1,4 +1,5 @@
 import { createAiidaRestClient } from "aiida-rest-client";
+export { JsonApiError, type DaemonWorker } from "aiida-rest-client";
 
 type BackendSettingsResponse = {
   aiida_restapi_base_url?: string;
