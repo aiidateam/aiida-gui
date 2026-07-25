@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
-import { ConfirmDeleteModal } from "./Modals";
+import { ConfirmDeleteModal } from "../src/components/Modals";
 
 describe("ConfirmDeleteModal", () => {
   test("renders title and body content", () => {

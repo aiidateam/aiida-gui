@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { vi, beforeEach, afterEach, test, expect } from "vitest";
-import App from "./App";
+
+import App from "../src/App";
 
 function mockPluginListSuccess(plugins: string[] = []) {
   vi.spyOn(globalThis, "fetch").mockResolvedValue({

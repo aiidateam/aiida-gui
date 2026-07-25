@@ -1,7 +1,7 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import useNodeTable from "./useNodeTable";
+import useNodeTable from "../src/hooks/useNodeTable";
 
 interface MockRow {
   pk: number;

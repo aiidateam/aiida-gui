@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import ProcessBreadcrumbs, {
   type ParentProcessEntry,
-} from "./ProcessIndicator";
+} from "../src/components/ProcessIndicator";
 
 describe("ProcessBreadcrumbs", () => {
   test("renders nothing for undefined breadcrumb data", () => {
