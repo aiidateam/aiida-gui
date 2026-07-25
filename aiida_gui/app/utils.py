@@ -1,31 +1,33 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Union, Tuple, List, Any
-from aiida.orm import load_node, Node
 from datetime import datetime
+from typing import Any
+
+from aiida.orm import Node, load_node
 from dateutil import relativedelta
 from dateutil.tz import tzlocal
 
 
-def get_executor_source(tdata: Any) -> Tuple[bool, Optional[str]]:
+def get_executor_source(tdata: Any) -> tuple[bool, str | None]:
     """Get the source code of the executor."""
     import inspect
+
     from node_graph.executor import NodeExecutor
 
-    executor = NodeExecutor(**tdata["executor"]).executor
+    executor = NodeExecutor(**tdata['executor']).executor
     if callable(executor):
         try:
             source_lines, _ = inspect.getsourcelines(executor)
-            source_code = "".join(source_lines)
+            source_code = ''.join(source_lines)
             return source_code
         except (TypeError, OSError):
-            source_code = tdata["executor"].get("source_code", "")
+            source_code = tdata['executor'].get('source_code', '')
             return source_code
     else:
         return str(executor)
 
 
-def get_node_recursive(links: Dict) -> Dict[str, Union[List[int], str]]:
+def get_node_recursive(links: dict) -> dict[str, list[int] | str]:
     """Recursively get a dictionary of nodess."""
     from collections.abc import Mapping
 
@@ -38,16 +40,14 @@ def get_node_recursive(links: Dict) -> Dict[str, Union[List[int], str]]:
     return data
 
 
-def get_node_inputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_node_inputs(pk: int | Node) -> str | dict[str, list[int] | str]:
     from aiida.common.links import LinkType
 
     if pk is None:
         return {}
 
     node = load_node(pk) if isinstance(pk, int) else pk
-    nodes_input = node.base.links.get_incoming(
-        link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
-    )
+    nodes_input = node.base.links.get_incoming(link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK))
     if nodes_input:
         result = get_node_recursive(nodes_input.nested())
     else:
@@ -56,13 +56,11 @@ def get_node_inputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str
     return result
 
 
-def get_nodes_called(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_nodes_called(pk: int | Node) -> str | dict[str, list[int] | str]:
     from aiida.common.links import LinkType
 
     node = load_node(pk) if isinstance(pk, int) else pk
-    links_called = node.base.links.get_outgoing(
-        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
-    )
+    links_called = node.base.links.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK))
     nodes_called = {}
     for link in links_called:
         nodes_called[link.link_label] = [
@@ -73,13 +71,11 @@ def get_nodes_called(pk: int | Node) -> Union[str, Dict[str, Union[List[int], st
     return nodes_called
 
 
-def get_nodes_caller(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_nodes_caller(pk: int | Node) -> str | dict[str, list[int] | str]:
     from aiida.common.links import LinkType
 
     node = load_node(pk) if isinstance(pk, int) else pk
-    links_caller = node.base.links.get_incoming(
-        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
-    )
+    links_caller = node.base.links.get_incoming(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK))
     nodes_caller = {}
     for link in links_caller:
         nodes_caller[link.link_label] = [
@@ -90,17 +86,15 @@ def get_nodes_caller(pk: int | Node) -> Union[str, Dict[str, Union[List[int], st
     return nodes_caller
 
 
-def get_node_outputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], str]]]:
+def get_node_outputs(pk: int | Node) -> str | dict[str, list[int] | str]:
     from aiida.common.links import LinkType
 
     if pk is None:
-        return ""
+        return ''
 
     node = load_node(pk) if isinstance(pk, int) else pk
-    result = ""
-    nodes_output = node.base.links.get_outgoing(
-        link_type=(LinkType.CREATE, LinkType.RETURN)
-    )
+    result = ''
+    nodes_output = node.base.links.get_outgoing(link_type=(LinkType.CREATE, LinkType.RETURN))
     if nodes_output.all():
         result = get_node_recursive(nodes_output.nested())
     else:
@@ -109,66 +103,58 @@ def get_node_outputs(pk: int | Node) -> Union[str, Dict[str, Union[List[int], st
     return result
 
 
-def get_workchain_data(node: Node) -> dict:
+def get_workchain_data(workchain_node: Node) -> dict:
     from aiida.common.links import LinkType
 
     graph_data = {
-        "name": node.process_label,
-        "uuid": node.uuid,
-        "state": node.process_state,
-        "nodes": {},
-        "links": [],
+        'name': workchain_node.process_label,
+        'uuid': workchain_node.uuid,
+        'state': workchain_node.process_state,
+        'nodes': {},
+        'links': [],
     }
 
-    links_called = node.base.links.get_outgoing(
-        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
-    )
-    links_input = node.base.links.get_incoming(
-        link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
-    )
+    links_called = workchain_node.base.links.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK))
+    links_input = workchain_node.base.links.get_incoming(link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK))
     nodes_called = []
+
     for link in links_called:
-        graph_data["nodes"][link.node.pk] = {
-            "label": f"{link.link_label}-{link.node.pk}",
-            "node_type": link.node.node_type,
-            "pk": link.node.pk,
-            "processPk": link.node.pk,
-            "inputs": [],
-            "properties": [],
-            "outputs": [],
-            "position": [0, 0],
-            "children": [],
+        graph_data['nodes'][link.node.pk] = {
+            'label': f'{link.link_label}-{link.node.pk}',
+            'node_type': link.node.node_type,
+            'pk': link.node.pk,
+            'processPk': link.node.pk,
+            'inputs': [],
+            'properties': [],
+            'outputs': [],
+            'position': [0, 0],
+            'children': [],
         }
         nodes_called.append(link.node)
+
     for node in nodes_called:
-        links_input = node.base.links.get_incoming(
-            link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
-        )
+        links_input = node.base.links.get_incoming(link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK))
         for link in links_input:
-            input_node_links_create = link.node.base.links.get_incoming(
-                link_type=(LinkType.CREATE, LinkType.RETURN)
-            )
+            input_node_links_create = link.node.base.links.get_incoming(link_type=(LinkType.CREATE, LinkType.RETURN))
             for link_create in input_node_links_create:
                 if link_create.node in nodes_called:
-                    graph_data["links"].append(
+                    graph_data['links'].append(
                         {
-                            "from_node": link_create.node.pk,
-                            "to_node": node.pk,
-                            "from_socket": link_create.link_label,
-                            "to_socket": link.link_label,
+                            'from_node': link_create.node.pk,
+                            'to_node': node.pk,
+                            'from_socket': link_create.link_label,
+                            'to_socket': link.link_label,
                         }
                     )
-                    input = {"name": link.link_label, "identifier": "any"}
-                    output = {"name": link_create.link_label, "identifier": "any"}
-                    graph_data["nodes"][node.pk]["inputs"].append(input)
-                    graph_data["nodes"][link_create.node.pk]["outputs"].append(output)
+                    input = {'name': link.link_label, 'identifier': 'any'}
+                    output = {'name': link_create.link_label, 'identifier': 'any'}
+                    graph_data['nodes'][node.pk]['inputs'].append(input)
+                    graph_data['nodes'][link_create.node.pk]['outputs'].append(output)
 
     return graph_data
 
 
-def get_processes_latest(
-    pk: int, item_type: str = "called_process"
-) -> Dict[str, Dict[str, Union[int, str]]]:
+def get_processes_latest(pk: int, item_type: str = 'called_process') -> dict[str, dict[str, int | str]]:
     """Get the latest info of all tasks from the process."""
     import aiida
 
@@ -176,74 +162,72 @@ def get_processes_latest(
     if pk is None:
         return tasks
     node = aiida.orm.load_node(pk)
-    if item_type == "called_process":
+    if item_type == 'called_process':
         # fetch the process that called by the workgraph
         for link in node.base.links.get_outgoing().all():
             if isinstance(link.node, aiida.orm.ProcessNode):
-                tasks[f"{link.link_label}-{link.node.pk}"] = {
-                    "pk": link.node.pk,
-                    "process_type": link.node.process_type,
-                    "state": link.node.process_state.value,
-                    "ctime": link.node.ctime,
-                    "mtime": link.node.mtime,
+                tasks[f'{link.link_label}-{link.node.pk}'] = {
+                    'pk': link.node.pk,
+                    'process_type': link.node.process_type,
+                    'state': link.node.process_state.value,
+                    'ctime': link.node.ctime,
+                    'mtime': link.node.mtime,
                 }
     return tasks
 
 
-def node_to_short_json(workgraph_pk: int, tdata: Dict[str, Any]) -> Dict[str, Any]:
+def node_to_short_json(workgraph_pk: int, tdata: dict[str, Any]) -> dict[str, Any]:
     """Export a node to a rete js node."""
 
     executor = get_executor_source(tdata)
     tdata_short = {
-        "node_type": tdata["metadata"]["node_type"],
-        "label": tdata["name"],
-        "metadata": [
-            ["name", tdata["name"]],
-            ["node_type", tdata["metadata"]["node_type"]],
-            ["identifier", tdata["identifier"]],
+        'node_type': tdata['metadata']['node_type'],
+        'label': tdata['name'],
+        'metadata': [
+            ['name', tdata['name']],
+            ['node_type', tdata['metadata']['node_type']],
+            ['identifier', tdata['identifier']],
         ],
-        "executor": executor,
+        'executor': executor,
     }
-    process_info = get_processes_latest(workgraph_pk, tdata["name"]).get(
-        tdata["name"], {}
-    )
-    tdata_short["process"] = process_info
+    process_info = get_processes_latest(workgraph_pk, tdata['name']).get(tdata['name'], {})
+    tdata_short['process'] = process_info
     if process_info is not None:
-        tdata_short["metadata"].append(["pk", process_info.get("pk")])
-        tdata_short["metadata"].append(["state", process_info.get("state")])
-        tdata_short["metadata"].append(["ctime", process_info.get("ctime")])
-        tdata_short["metadata"].append(["mtime", process_info.get("mtime")])
-        tdata_short["inputs"] = get_node_inputs(process_info.get("pk"))
-        tdata_short["outputs"] = get_node_outputs(process_info.get("pk"))
+        tdata_short['metadata'].append(['pk', process_info.get('pk')])
+        tdata_short['metadata'].append(['state', process_info.get('state')])
+        tdata_short['metadata'].append(['ctime', process_info.get('ctime')])
+        tdata_short['metadata'].append(['mtime', process_info.get('mtime')])
+        tdata_short['inputs'] = get_node_inputs(process_info.get('pk'))
+        tdata_short['outputs'] = get_node_outputs(process_info.get('pk'))
     else:
-        tdata_short["inputs"] = ""
-        tdata_short["outputs"] = ""
-    tdata_short["state"] = process_info.get("state", "") if process_info else ""
+        tdata_short['inputs'] = ''
+        tdata_short['outputs'] = ''
+    tdata_short['state'] = process_info.get('state', '') if process_info else ''
     return tdata_short
 
 
-def get_node_summary(node: Node) -> List[List[str]]:
+def get_node_summary(node: Node) -> list[list[str]]:
     summary = {
-        "table": get_node_summary_table(node),
-        "inputs": get_node_inputs(node),
-        "outputs": get_node_outputs(node),
-        "called": get_nodes_called(node),
-        "caller": get_nodes_caller(node),
+        'table': get_node_summary_table(node),
+        'inputs': get_node_inputs(node),
+        'outputs': get_node_outputs(node),
+        'called': get_nodes_called(node),
+        'caller': get_nodes_caller(node),
     }
     return summary
 
 
-def get_node_summary_table(pk: int | Node) -> List[List[str]]:
+def get_node_summary_table(pk: int | Node) -> list[list[str]]:
     """ """
-    from plumpy import ProcessState
     from aiida.orm import ProcessNode
+    from plumpy import ProcessState
 
     table = []
 
     node = load_node(pk) if isinstance(pk, int) else pk
 
     if isinstance(node, ProcessNode):
-        table.append(["type", node.process_label])
+        table.append(['type', node.process_label])
 
         try:
             process_state = ProcessState(node.process_state)
@@ -255,25 +239,25 @@ def get_node_summary_table(pk: int | Node) -> List[List[str]]:
             if process_state == ProcessState.FINISHED and node.exit_message:
                 table.append(
                     [
-                        "state",
-                        f"{process_state_string} [{node.exit_status}] {node.exit_message}",
+                        'state',
+                        f'{process_state_string} [{node.exit_status}] {node.exit_message}',
                     ]
                 )
             elif process_state == ProcessState.FINISHED:
-                table.append(["state", f"{process_state_string} [{node.exit_status}]"])
+                table.append(['state', f'{process_state_string} [{node.exit_status}]'])
             elif process_state == ProcessState.EXCEPTED:
-                table.append(["state", f"{process_state_string} <{node.exception}>"])
+                table.append(['state', f'{process_state_string} <{node.exception}>'])
             else:
-                table.append(["state", process_state_string])
+                table.append(['state', process_state_string])
 
     else:
-        table.append(["type", node.__class__.__name__])
-    table.append(["pk", str(node.pk)])
-    table.append(["uuid", str(node.uuid)])
-    table.append(["label", node.label])
-    table.append(["description", node.description])
-    table.append(["ctime", node.ctime])
-    table.append(["mtime", node.mtime])
+        table.append(['type', node.__class__.__name__])
+    table.append(['pk', str(node.pk)])
+    table.append(['uuid', str(node.uuid)])
+    table.append(['label', node.label])
+    table.append(['description', node.description])
+    table.append(['ctime', node.ctime])
+    table.append(['mtime', node.mtime])
 
     try:
         computer = node.computer
@@ -281,7 +265,7 @@ def get_node_summary_table(pk: int | Node) -> List[List[str]]:
         pass
     else:
         if computer is not None:
-            table.append(["computer", f"[{node.computer.pk}] {node.computer.label}"])
+            table.append(['computer', f'[{node.computer.pk}] {node.computer.label}'])
 
     return table
 
@@ -295,17 +279,17 @@ def time_ago(past_time: datetime) -> str:
 
     # Format the time difference
     if delta.years > 0:
-        return f"{delta.years}Y ago"
+        return f'{delta.years}Y ago'
     elif delta.months > 0:
-        return f"{delta.months}M ago"
+        return f'{delta.months}M ago'
     elif delta.days > 0:
-        return f"{delta.days}D ago"
+        return f'{delta.days}D ago'
     elif delta.hours > 0:
-        return f"{delta.hours}h ago"
+        return f'{delta.hours}h ago'
     elif delta.minutes > 0:
-        return f"{delta.minutes}min ago"
+        return f'{delta.minutes}min ago'
     else:
-        return "Just now"
+        return 'Just now'
 
 
 def translate_datagrid_filter_json(raw: str, project) -> dict:
@@ -320,51 +304,50 @@ def translate_datagrid_filter_json(raw: str, project) -> dict:
 
     #   DataGrid → QB column
     field_map = {
-        "pk": "id",
-        "ctime": "ctime",
-        "node_type": "node_type",
-        "process_label": "attributes.process_label",
-        "process_state": "attributes.process_state",
-        "exit_status": "attributes.exit_status",
-        "exit_message": "attributes.exit_message",
-        "paused": "attributes.paused",
-        "label": "label",
-        "description": "description",
+        'pk': 'id',
+        'ctime': 'ctime',
+        'node_type': 'node_type',
+        'process_label': 'attributes.process_label',
+        'process_state': 'attributes.process_state',
+        'exit_status': 'attributes.exit_status',
+        'exit_message': 'attributes.exit_message',
+        'paused': 'attributes.paused',
+        'label': 'label',
+        'description': 'description',
     }
 
-    for item in fm.get("items", []):
-        field = item.get("field")
-        value = item.get("value")
-        operator = item.get("operator", "contains")
+    for item in fm.get('items', []):
+        field = item.get('field')
+        value = item.get('value')
+        operator = item.get('operator', 'contains')
         if not value or field not in field_map:
             continue
         col = field_map[field]
 
         # numeric
-        if col == "id":
+        if col == 'id':
             try:
                 filters[col] = int(value)
             except ValueError:
                 continue
-        else:
-            if operator in ("contains", "equals", "is"):
-                filters[col] = {"like": f"%{value}%"}
+        elif operator in ('contains', 'equals', 'is'):
+            filters[col] = {'like': f'%{value}%'}
 
-    # quick filter (space‑separated)
-    qf_values = fm.get("quickFilterValues", [])
+    # quick filter (space-separated)
+    qf_values = fm.get('quickFilterValues', [])
 
     if qf_values:
         blocks = []
         for val in qf_values:
-            like = {"like": f"%{val}%"}
+            like = {'like': f'%{val}%'}
             block = [{key: like} for key in project]
-            block.append({"id": int(val)} if val.isdigit() else {})
-            blocks.append({"or": block})
-        filters = {"and": [filters, *blocks]} if filters else {"and": blocks}
+            block.append({'id': int(val)} if val.isdigit() else {})
+            blocks.append({'or': block})
+        filters = {'and': [filters, *blocks]} if filters else {'and': blocks}
     return filters
 
 
-def get_parent_processes(pk: int) -> List[Dict[str, Union[str, int]]]:
+def get_parent_processes(pk: int) -> list[dict[str, str | int]]:
     """Get the list of parent processes.
     Use aiida incoming links to find the parent processes.
     the parent process is the process that has a link (type CALL_WORK) to the current process.
@@ -373,9 +356,7 @@ def get_parent_processes(pk: int) -> List[Dict[str, Union[str, int]]]:
     from aiida.common.links import LinkType
 
     node = orm.load_node(pk)
-    parent_processes = [
-        {"label": node.process_label, "pk": node.pk, "node_type": node.node_type}
-    ]
+    parent_processes = [{'label': node.process_label, 'pk': node.pk, 'node_type': node.node_type}]
     links = node.base.links.get_incoming(link_type=LinkType.CALL_WORK).all()
     if len(links) > 0:
         parent_processes.extend(get_parent_processes(links[0].node.pk))

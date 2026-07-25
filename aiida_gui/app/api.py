@@ -1,21 +1,21 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from aiida.manage import manager
-from aiida_gui.app.workchain import router as workchain_router
-from aiida_gui.app.task import router as task_router
-from aiida_gui.app.process_node import router as process_router
-from aiida_gui.app.data_node import router as datanode_router
-from aiida_gui.app.group_node import router as groupnode_router
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 import os
+from pathlib import Path
 
-from fastapi.responses import FileResponse
+from aiida.manage import manager
+from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic_settings import BaseSettings
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from pydantic_settings import BaseSettings
+from aiida_gui.app.data_node import router as datanode_router
+from aiida_gui.app.group_node import router as groupnode_router
 from aiida_gui.app.plugin import get_plugins, mount_plugins
+from aiida_gui.app.process_node import router as process_router
+from aiida_gui.app.task import router as task_router
+from aiida_gui.app.workchain import router as workchain_router
 
 
 class BackendSettings(BaseSettings):
@@ -25,9 +25,9 @@ class BackendSettings(BaseSettings):
     the environment variable `AIIDA_GUI_PROFILE`.
     """
 
-    aiida_gui_profile: str = ""  # if empty aiida uses default profile
-    aiida_restapi_base_url: str = "http://127.0.0.1:8000"
-    aiida_restapi_prefix: str = "/v0"
+    aiida_gui_profile: str = ''  # if empty aiida uses default profile
+    aiida_restapi_base_url: str = 'http://127.0.0.1:8000'
+    aiida_restapi_prefix: str = '/v0'
 
 
 app_settings = BackendSettings()
@@ -37,24 +37,24 @@ manager.get_manager().load_profile(app_settings.aiida_gui_profile)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=['*'],  # Allows all origins
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=['*'],  # Allows all methods
+    allow_headers=['*'],  # Allows all headers
 )
 
 
-@app.get("/api", tags=["root"])
+@app.get('/api', tags=['root'])
 async def read_root() -> dict:
-    return {"message": "Welcome to AiiDA."}
+    return {'message': 'Welcome to AiiDA.'}
 
 
-@app.get("/plugins")
+@app.get('/plugins')
 async def list_plugins():
     plugins = get_plugins()
-    print(f"Found plugins: {plugins.keys()}")
+    print(f'Found plugins: {plugins.keys()}')
     plugin_names = [plugin_name for plugin_name in plugins.keys()]
-    return {"plugins": plugin_names}
+    return {'plugins': plugin_names}
 
 
 app.include_router(workchain_router)
@@ -65,12 +65,12 @@ app.include_router(groupnode_router)
 mount_plugins(app)
 
 
-@app.get("/debug")
+@app.get('/debug')
 async def debug() -> dict:
-    return {"loaded_aiida_profile": manager.get_manager().get_profile()}
+    return {'loaded_aiida_profile': manager.get_manager().get_profile()}
 
 
-@app.get("/backend-setting")
+@app.get('/backend-setting')
 async def get_backend_settings() -> dict:
     return app_settings.model_dump()
 
@@ -86,66 +86,66 @@ a request to the FastAPI server for /settings. Since this route isn't defined in
 so we use the index.html serve all routes except API specific ones, then load all static assets.
 """
 backend_dir = Path(__file__).parent
-build_dir = backend_dir / "../static"
-build_dir = os.getenv("REACT_BUILD_DIR", build_dir)
+build_dir = backend_dir / '../static'
+build_dir = os.getenv('REACT_BUILD_DIR', build_dir)
 build_dir = Path(build_dir)
-index_file = build_dir / "index.html"
-static_dir = build_dir / "static"
+index_file = build_dir / 'index.html'
+static_dir = build_dir / 'static'
 frontend_available = index_file.is_file() and static_dir.is_dir()
 
 
-@app.get("/", include_in_schema=False)
+@app.get('/', include_in_schema=False)
 async def serve_frontend_root():
     """Serve the frontend root page when built assets are available."""
     if not frontend_available:
-        msg = "AiiDA GUI frontend assets are missing. Build them with: `cd frontend && npm install && npm run build`."
+        msg = 'AiiDA GUI frontend assets are missing. Build them with: `cd frontend && npm install && npm run build`.'
         raise StarletteHTTPException(status_code=503, detail=msg)
-    return FileResponse(index_file, media_type="text/html")
+    return FileResponse(index_file, media_type='text/html')
 
 
 @app.exception_handler(StarletteHTTPException)
 async def _spa_server(req: Request, exc: StarletteHTTPException):
     if exc.status_code == 404 and frontend_available:
-        return FileResponse(index_file, media_type="text/html")
+        return FileResponse(index_file, media_type='text/html')
     else:
         return await http_exception_handler(req, exc)
 
 
 if frontend_available:
     app.mount(
-        "/static/",
+        '/static/',
         StaticFiles(directory=static_dir),
-        name="React app static files",
+        name='React app static files',
     )
 
     ##################
     # PLUGIN SUPPORT #
     ##################
 
-    @app.get("/react-shim.js", include_in_schema=False)
+    @app.get('/react-shim.js', include_in_schema=False)
     async def react_shim():
-        path = build_dir / "react-shim.js"
+        path = build_dir / 'react-shim.js'
         if not path.is_file():
-            raise StarletteHTTPException(status_code=404, detail="shim missing")
-        return FileResponse(path, media_type="application/javascript")
+            raise StarletteHTTPException(status_code=404, detail='shim missing')
+        return FileResponse(path, media_type='application/javascript')
 
-    @app.get("/react-jsx-runtime-shim.js", include_in_schema=False)
+    @app.get('/react-jsx-runtime-shim.js', include_in_schema=False)
     async def react_jsx_runtime_shim():
         return FileResponse(
-            build_dir / "react-jsx-runtime-shim.js",
-            media_type="application/javascript",
+            build_dir / 'react-jsx-runtime-shim.js',
+            media_type='application/javascript',
         )
 
-    @app.get("/react-router-dom-shim.js", include_in_schema=False)
+    @app.get('/react-router-dom-shim.js', include_in_schema=False)
     async def react_router_dom_shim():
-        path = build_dir / "react-router-dom-shim.js"
+        path = build_dir / 'react-router-dom-shim.js'
         if not path.is_file():
-            raise StarletteHTTPException(status_code=404, detail="shim missing")
-        return FileResponse(path, media_type="application/javascript")
+            raise StarletteHTTPException(status_code=404, detail='shim missing')
+        return FileResponse(path, media_type='application/javascript')
 
-    @app.get("/use-sync-external-store-shim.js", include_in_schema=False)
+    @app.get('/use-sync-external-store-shim.js', include_in_schema=False)
     async def use_sync_external_store_shim():
-        path = build_dir / "use-sync-external-store-shim.js"
+        path = build_dir / 'use-sync-external-store-shim.js'
         if not path.is_file():
-            raise StarletteHTTPException(status_code=404, detail="shim missing")
-        return FileResponse(path, media_type="application/javascript")
+            raise StarletteHTTPException(status_code=404, detail='shim missing')
+        return FileResponse(path, media_type='application/javascript')
