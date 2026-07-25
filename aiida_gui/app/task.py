@@ -77,7 +77,7 @@ async def manage_task_action(action: str, id: int, tasks: list[str]):
             elif action == 'play':
                 print(f'Playing tasks {tasks}')
                 try:
-                    control.pause_processes(
+                    control.play_processes(
                         pks,
                         all_entries=None,
                         timeout=5,
@@ -89,7 +89,7 @@ async def manage_task_action(action: str, id: int, tasks: list[str]):
             elif action == 'kill':
                 print(f'Killing tasks {tasks}')
                 try:
-                    control.pause_processes(
+                    control.kill_processes(
                         pks,
                         all_entries=None,
                         timeout=5,
