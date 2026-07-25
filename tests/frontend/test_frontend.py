@@ -132,7 +132,12 @@ def test_daemon(page):
     expect(page.locator(':nth-match(tr, 2)')).to_be_hidden()
 
     # Verify that after starting the daemon one additional row appeared
-    page.get_by_role('button', name='Start Daemon').click()
+    page.get_by_role('button', name='Start Daemon', exact=True).click()
+    expect(page.locator(':nth-match(tr, 2)')).to_be_visible()
+    expect(page.locator(':nth-match(tr, 3)')).to_be_hidden()
+
+    # Verify that after restarting the daemon, the number of rows remains the same
+    page.get_by_role('button', name='Restart Daemon').click()
     expect(page.locator(':nth-match(tr, 2)')).to_be_visible()
     expect(page.locator(':nth-match(tr, 3)')).to_be_hidden()
 
