@@ -70,7 +70,7 @@ def set_backend_server_settings(aiida_profile):
 
 @pytest.fixture(scope='session')
 def ran_workchain(aiida_profile, add_code):
-    """A workgraph with calcfunction."""
+    """A workchain with calcfunction."""
     mp_context = get_context('spawn')
     queue = mp_context.Queue()
     process = mp_context.Process(

@@ -121,5 +121,5 @@ async def play_process_tasks(id: int, tasks: list[dict] | None = None):
 
 # Endpoint for killing tasks in a process
 @router.post('/api/process/tasks/kill/{id}')
-async def kill_workgraph_tasks(id: int, tasks: list[dict] | None = None):
+async def kill_process_tasks(id: int, tasks: list[dict] | None = None):
     return await manage_task_action('kill', id, tasks)

@@ -53,7 +53,7 @@ function DataNodeItem() {
       {NodeData.node_type === "data.core.array.trajectory.TrajectoryData." && (
         <AtomsItem data={NodeData} />
       )}
-      {NodeData.node_type === "data.workgraph.ase.atoms.Atoms.AtomsData." && (
+      {NodeData.node_type === "data.pythonjob.ase.atoms.Atoms.AtomsData." && (
         <AtomsItem data={NodeData} />
       )}
     </div>

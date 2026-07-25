@@ -11,7 +11,7 @@ def test_root_route(client):
 
 
 @pytest.mark.backend
-def test_workgraph_route(client):
+def test_workflow_route(client):
     """Sample test case for the root route"""
     response = client.get('/api/workchain-data')
     assert response.status_code == 200

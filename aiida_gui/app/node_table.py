@@ -63,7 +63,7 @@ def projected_data_to_dict(qb, project):
 def make_node_router(
     *,  # force kwargs
     node_cls: type[orm.Node],  # ⬛  WHICH NODE TYPE
-    prefix: str,  # ⬛  URL prefix, e.g. "workgraph" → /api/workgraph-data
+    prefix: str,  # ⬛  URL prefix, e.g. "process" → /api/process-data
     project: list[str] | None = None,
     get_data_func: callable = projected_data_to_dict,
     include_delete_route: bool = True,

@@ -163,7 +163,6 @@ def get_processes_latest(pk: int, item_type: str = 'called_process') -> dict[str
         return tasks
     node = aiida.orm.load_node(pk)
     if item_type == 'called_process':
-        # fetch the process that called by the workgraph
         for link in node.base.links.get_outgoing().all():
             if isinstance(link.node, aiida.orm.ProcessNode):
                 tasks[f'{link.link_label}-{link.node.pk}'] = {
@@ -176,7 +175,7 @@ def get_processes_latest(pk: int, item_type: str = 'called_process') -> dict[str
     return tasks
 
 
-def node_to_short_json(workgraph_pk: int, tdata: dict[str, Any]) -> dict[str, Any]:
+def node_to_short_json(node_pk: int, tdata: dict[str, Any]) -> dict[str, Any]:
     """Export a node to a rete js node."""
 
     executor = get_executor_source(tdata)
@@ -190,7 +189,7 @@ def node_to_short_json(workgraph_pk: int, tdata: dict[str, Any]) -> dict[str, An
         ],
         'executor': executor,
     }
-    process_info = get_processes_latest(workgraph_pk, tdata['name']).get(tdata['name'], {})
+    process_info = get_processes_latest(node_pk, tdata['name']).get(tdata['name'], {})
     tdata_short['process'] = process_info
     if process_info is not None:
         tdata_short['metadata'].append(['pk', process_info.get('pk')])

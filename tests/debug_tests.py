@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 def main():
     """Run pytest with Playwright in non-headless mode."""
     pytest_args = [
-        'tests/frontend/test_frontend.py::test_workgraph_delete',
+        'tests/frontend/test_frontend.py::test_process_delete',
         '-sv',  # Show output and verbose mode
     ]
 

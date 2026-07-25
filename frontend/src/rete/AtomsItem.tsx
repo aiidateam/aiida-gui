@@ -91,7 +91,7 @@ export default function AtomsItem({ data }: AtomsItemProps) {
     if (payload.node_type === "data.core.structure.StructureData.") {
       atomsData = structureToAtomsData(payload);
     } else if (
-      payload.node_type === "data.workgraph.ase.atoms.Atoms.AtomsData."
+      payload.node_type === "data.pythonjob.ase.atoms.Atoms.AtomsData."
     ) {
       atomsData = aseAtomsToAtomsData(payload);
     }

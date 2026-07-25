@@ -31,7 +31,7 @@ async def read_process(id: int):
 
 
 @router.get('/api/process-logs/{id}')
-async def read_workgraph_logs(id: int):
+async def read_process_logs(id: int):
     from aiida.cmdline.utils.common import get_workchain_report
 
     try:
@@ -42,4 +42,4 @@ async def read_workgraph_logs(id: int):
     except KeyError as e:
         error_traceback = traceback.format_exc()  # Capture the full traceback
         print(error_traceback)
-        raise HTTPException(status_code=404, detail=f'Workgraph {id} not found, {e}')
+        raise HTTPException(status_code=404, detail=f'Process {id} not found, {e}')

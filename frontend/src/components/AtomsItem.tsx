@@ -71,7 +71,7 @@ export default function AtomsItem({ data }: AtomsItemProps) {
       data.node_type === "data.core.array.trajectory.TrajectoryData."
     ) {
       atoms = (data.extras || []).map((atomsData) => new Atoms(atomsData));
-    } else if (data.node_type === "data.workgraph.ase.atoms.Atoms.AtomsData.") {
+    } else if (data.node_type === "data.pythonjob.ase.atoms.Atoms.AtomsData.") {
       atoms = new Atoms(aseAtomsToAtomsData(data));
     }
 
