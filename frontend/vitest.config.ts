@@ -8,6 +8,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
     css: true,
+    server: {
+      deps: {
+        inline: ["aiida-rest-client"],
+      },
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

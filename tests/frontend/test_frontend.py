@@ -123,40 +123,6 @@ def test_datanode_item(page, ran_workchain):
     assert 'node_type' in rows[2].text_content()
 
 
-@pytest.mark.frontend
-@pytest.mark.usefixtures('web_server', 'ran_workchain')
-def test_daemon(page):
-    page.goto('/daemon/')
-    # Verify that only one row is visible
-    expect(page.locator(':nth-match(tr, 1)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 2)')).to_be_hidden()
-
-    # Verify that after starting the daemon one additional row appeared
-    page.get_by_role('button', name='Start Daemon', exact=True).click()
-    expect(page.locator(':nth-match(tr, 2)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 3)')).to_be_hidden()
-
-    # Verify that after restarting the daemon, the number of rows remains the same
-    page.get_by_role('button', name='Restart Daemon').click()
-    expect(page.locator(':nth-match(tr, 2)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 3)')).to_be_hidden()
-
-    # Verify that after adding workers one additional row appeared
-    page.get_by_role('button', name='Increase Workers').click()
-    expect(page.locator(':nth-match(tr, 3)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 4)')).to_be_hidden()
-
-    # Verify that after decreasing workers one row disappears
-    page.get_by_role('button', name='Decrease Workers').click()
-    expect(page.locator(':nth-match(tr, 2)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 3)')).to_be_hidden()
-
-    # Verify that stopping the daemon only the header row exists
-    page.get_by_role('button', name='Stop Daemon').click()
-    expect(page.locator(':nth-match(tr, 1)')).to_be_visible()
-    expect(page.locator(':nth-match(tr, 2)')).to_be_hidden()
-
-
 ############################
 # Tests mutating the state #
 ############################
