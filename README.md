@@ -4,7 +4,7 @@
 [![Docs status](https://readthedocs.org/projects/aiida-gui/badge)](http://aiida-gui.readthedocs.io/)
 [![Unit test](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/aiidateam/aiida-gui/actions/workflows/ci.yml)
 
-Web UI to visualize and manage the AiiDA WorkGraph.
+Web UI to visualize and manage AiiDA data and processes.
 
 ## Installation
 
