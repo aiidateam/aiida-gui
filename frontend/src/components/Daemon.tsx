@@ -16,7 +16,7 @@ export default function Daemon() {
   const fetchWorkers = async () => {
     try {
       const aiidaRestClient = await getAiidaRestClient();
-      const data = await aiidaRestClient.daemon.worker();
+      const data = await aiidaRestClient.daemon.workers();
       setWorkers(Object.values(data));
     } catch (error) {
       console.error("Failed to fetch workers:", error);
